@@ -1,0 +1,63 @@
+{
+  "name": "zero-db",
+  "version": "1.0.0",
+  "description": "Zero-DB - Next-Gen File-Based Database Engine with Tamper-Proof Security, Auto-Scaling & High Performance",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "ts-node example.ts"
+  },
+  "keywords": [
+    "database",
+    "database-engine",
+    "file-based-database",
+    "embedded-database",
+    "typescript",
+    "nodejs",
+    "zero-dependency",
+    "high-performance",
+    "tamper-proof",
+    "embedded",
+    "nosql",
+    "auto-scaling",
+    "in-memory",
+    "key-value-store",
+    "column-store",
+    "crud",
+    "local-database"
+  ],
+  "author": {
+    "name": "Levent Inan",
+    "email": "dev@useapi.org",
+    "url": "https://github.com/asymmetricstar"
+  },
+  "license": "MIT",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    {
+      "type": "Commercial",
+      "url": "https://github.com/asymmetricstar/zero-db#commercial-license"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/asymmetricstar/zero-db.git"
+  },
+  "bugs": {
+    "url": "https://github.com/asymmetricstar/zero-db/issues"
+  },
+  "homepage": "https://github.com/asymmetricstar/zero-db#readme",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0"
+  }
+}
