@@ -236,8 +236,11 @@ class DataManager {
                     if (schema.isAuto) {
                         castedData.set(fieldName, value || '');
                     }
-                    else {
+                    else if (schema.defaultValue !== undefined) {
                         castedData.set(fieldName, schema.defaultValue);
+                    }
+                    else {
+                        castedData.set(fieldName, '');
                     }
                     continue;
                 }

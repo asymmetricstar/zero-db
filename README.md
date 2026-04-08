@@ -18,7 +18,7 @@
 ## 💻 Quick Start
 
 ### Installation
-[ZeroDB Install Docs](./install.md)
+[Zero-DB First Run](./install.md)
 
 ```bash
 npm install zero-db-engine
@@ -182,6 +182,7 @@ await table.select('*').limit(10).offset(20).list();
 ---
 
 ## 📊 Performance Test Results
+[Results Details](./test_raporu.md)
 
 ### Data Integrity (0 errors, 0 data loss)
 
