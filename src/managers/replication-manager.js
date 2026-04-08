@@ -79,15 +79,17 @@ class ReplicationManager {
     async syncToSlave() {
         if (!this.config.targetPath || this.pendingSync.length === 0)
             return;
-        try {
-            for (const op of this.pendingSync) {
+        const remainingSync = [];
+        for (const op of this.pendingSync) {
+            try {
                 await this.applyOperationToSlave(op);
             }
-            this.pendingSync = [];
+            catch (e) {
+                event_manager_1.EventManager.error('Replication sync failed for operation', { error: e, op });
+                remainingSync.push(op);
+            }
         }
-        catch (e) {
-            event_manager_1.EventManager.error('Replication sync failed', { error: e });
-        }
+        this.pendingSync = remainingSync;
     }
     async applyOperationToSlave(op) {
         const targetDbDir = path.join(this.config.targetPath, md5_1.MD5.hash(op.dbName));

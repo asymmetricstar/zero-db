@@ -5,11 +5,13 @@
  * @asymmetricstar - https://github.com/asymmetricstar
  */
 import { DatabaseInfo } from '../managers/database-manager';
+import { BackupManager } from '../managers/backup-manager';
 import { QueryBuilder } from '../query/query-builder';
 import { PermissionType, CreateFieldDefinition } from '../types';
 import { ConnectionPool } from '../managers/connection-pool';
 import { ZeroDBResult } from '../utils/validator';
 import { EventEmitter } from 'node:events';
+import { ScaleConfig } from '../engine/auto-scaler';
 interface ZeroDBOptions {
     db?: string;
     auth?: {
@@ -17,6 +19,8 @@ interface ZeroDBOptions {
         pass?: string;
     };
     overwrite?: boolean;
+    scaler?: Partial<ScaleConfig>;
+    backup?: string;
 }
 export declare class ZeroDB extends EventEmitter {
     private rootPath;
@@ -24,6 +28,7 @@ export declare class ZeroDB extends EventEmitter {
     private tableManager;
     private fieldManager;
     private dataManager;
+    backupManager: BackupManager;
     private cache;
     private connectionPool;
     private currentUser;
@@ -72,6 +77,8 @@ export declare class ZeroDB extends EventEmitter {
     getConnectionPool(): ConnectionPool;
     clearCache(): void;
     exit(): void;
+    backup(fileName: string): Promise<string>;
+    restore(fileName: string): Promise<void>;
 }
 export {};
 //# sourceMappingURL=zero-db.d.ts.map

@@ -47,6 +47,7 @@ const table_manager_1 = require("../managers/table-manager");
 const field_manager_1 = require("../managers/field-manager");
 const data_manager_1 = require("../managers/data-manager");
 const permission_manager_1 = require("../managers/permission-manager");
+const backup_manager_1 = require("../managers/backup-manager");
 const query_builder_1 = require("../query/query-builder");
 const cache_manager_1 = require("../utils/cache-manager");
 const md5_1 = require("../utils/md5");
@@ -55,6 +56,7 @@ const validator_1 = require("../utils/validator");
 const path_utils_1 = require("../utils/path-utils");
 const event_manager_1 = require("../utils/event-manager");
 const node_events_1 = require("node:events");
+const auto_scaler_1 = require("../engine/auto-scaler");
 class ZeroDB extends node_events_1.EventEmitter {
     constructor(rootPath = './databases', cacheMB = 128, options = {}) {
         super();
@@ -75,7 +77,12 @@ class ZeroDB extends node_events_1.EventEmitter {
         this.tableManager = new table_manager_1.TableManager(this.rootPath, this.cache);
         this.fieldManager = new field_manager_1.FieldManager(this.rootPath, this.cache);
         this.dataManager = new data_manager_1.DataManager(this.rootPath, this.cache, this.isNetwork);
+        this.backupManager = new backup_manager_1.BackupManager(this.rootPath, options.backup || './backup');
         this.connectionPool = new connection_pool_1.ConnectionPool();
+        if (options.scaler) {
+            auto_scaler_1.autoScaler.updateConfig(options.scaler);
+            event_manager_1.EventManager.info('AutoScaler configuration updated', { scaler: options.scaler });
+        }
         event_manager_1.EventManager.info('ZeroDB instance initialized', { rootPath, cacheMB, isNetwork: this.isNetwork });
         if (options.auth?.user && options.auth?.pass) {
             this.storedCredentials = { username: options.auth.user, password: options.auth.pass };
@@ -262,7 +269,7 @@ class ZeroDB extends node_events_1.EventEmitter {
                 return null;
             }
             const permissionManager = new permission_manager_1.PermissionManager(this.currentUser.permission);
-            const qb = new query_builder_1.QueryBuilder(this.currentDb, tableName, this.dataManager, this.fieldManager, permissionManager);
+            const qb = new query_builder_1.QueryBuilder(this.currentDb, tableName, this.dataManager, this.fieldManager, permissionManager, this.backupManager);
             const tableDef = this.tableManager.getTableDefinition(this.currentDb, tableName);
             const fieldMappings = this.tableManager.getAllFields(this.currentDb, tableName);
             if (tableDef) {
@@ -625,6 +632,12 @@ class ZeroDB extends node_events_1.EventEmitter {
         event_manager_1.EventManager.info('ZeroDB shutting down');
         this.clearCache();
         process.exit(0);
+    }
+    async backup(fileName) {
+        return await this.backupManager.createFullBackup(fileName);
+    }
+    async restore(fileName) {
+        return await this.backupManager.restoreFullBackup(fileName);
     }
 }
 exports.ZeroDB = ZeroDB;

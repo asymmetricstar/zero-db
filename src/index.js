@@ -6,7 +6,7 @@
  * @asymmetricstar - https://github.com/asymmetricstar
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PERMISSION_NAMES = exports.PERMISSION_BITS = exports.FileStreamReader = exports.EventManager = exports.UUID = exports.MD5 = exports.Crypto = exports.PermissionManager = exports.DataManager = exports.FieldManager = exports.TableManager = exports.DatabaseManager = exports.QueryBuilder = exports.ZeroDB = void 0;
+exports.PERMISSION_NAMES = exports.PERMISSION_BITS = exports.FileStreamReader = exports.EventManager = exports.UUID = exports.MD5 = exports.Crypto = exports.BackupManager = exports.PermissionManager = exports.DataManager = exports.FieldManager = exports.TableManager = exports.DatabaseManager = exports.QueryBuilder = exports.ZeroDB = void 0;
 var zero_db_1 = require("./core/zero-db");
 Object.defineProperty(exports, "ZeroDB", { enumerable: true, get: function () { return zero_db_1.ZeroDB; } });
 var query_builder_1 = require("./query/query-builder");
@@ -21,6 +21,8 @@ var data_manager_1 = require("./managers/data-manager");
 Object.defineProperty(exports, "DataManager", { enumerable: true, get: function () { return data_manager_1.DataManager; } });
 var permission_manager_1 = require("./managers/permission-manager");
 Object.defineProperty(exports, "PermissionManager", { enumerable: true, get: function () { return permission_manager_1.PermissionManager; } });
+var backup_manager_1 = require("./managers/backup-manager");
+Object.defineProperty(exports, "BackupManager", { enumerable: true, get: function () { return backup_manager_1.BackupManager; } });
 var crypto_1 = require("./utils/crypto");
 Object.defineProperty(exports, "Crypto", { enumerable: true, get: function () { return crypto_1.Crypto; } });
 var md5_1 = require("./utils/md5");

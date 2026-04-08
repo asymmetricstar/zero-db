@@ -11,6 +11,7 @@ export { TableManager } from './managers/table-manager';
 export { FieldManager } from './managers/field-manager';
 export { DataManager } from './managers/data-manager';
 export { PermissionManager } from './managers/permission-manager';
+export { BackupManager } from './managers/backup-manager';
 export { Crypto } from './utils/crypto';
 export { MD5 } from './utils/md5';
 export { UUID } from './utils/uuid';
