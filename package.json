@@ -1,11 +1,11 @@
 {
-  "name": "zero-db",
-  "version": "1.0.0",
+  "name": "zero-db-engine",
+  "version": "1.0.2",
   "description": "Zero-DB - Next-Gen File-Based Database Engine with Tamper-Proof Security, Auto-Scaling & High Performance",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
   "files": [
-    "dist",
+    "src",
     "README.md"
   ],
   "scripts": {
