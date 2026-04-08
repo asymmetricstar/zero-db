@@ -32,6 +32,7 @@ export declare class QueryBuilder {
     private sortOrder;
     private groupByField;
     private distinctField;
+    private joinConfig;
     private schemas;
     private executed;
     constructor(dbName: string, tableName: string, dataManager: DataManager, fieldManager: FieldManager, permissionManager: PermissionManager, backupManager: BackupManager);
@@ -72,5 +73,6 @@ export declare class QueryBuilder {
     count(): Promise<number>;
     first(): Promise<SelectResult | null>;
     clone(): QueryBuilder;
+    join(rightTableName: string, rightField: string, leftField: string, selectFields?: string[] | '*'): QueryBuilder;
 }
 //# sourceMappingURL=query-builder.d.ts.map

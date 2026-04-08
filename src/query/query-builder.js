@@ -26,6 +26,7 @@ class QueryBuilder {
         this.sortOrder = 'asc';
         this.groupByField = '';
         this.distinctField = '';
+        this.joinConfig = null;
         this.schemas = new Map();
         this.executed = false;
         this.dbName = dbName;
@@ -235,9 +236,9 @@ class QueryBuilder {
                 event_manager_1.EventManager.error('Permission denied: list access required');
                 return [];
             }
+            // --- Step 1: Retrieve initial records from the current (left) table ---
             const fieldFileNames = this.fieldManager.getAllFields(this.dbName, this.tableName);
             let activeSelectedFields = [...this.selectedFields];
-            // FIX: If no fields selected, always default to all fields regardless of execution status
             if (this.selectAll || activeSelectedFields.length === 0) {
                 activeSelectedFields = Array.from(fieldFileNames.keys());
             }
@@ -255,33 +256,16 @@ class QueryBuilder {
                     allFieldsForQuery.push(sf);
                 }
             }
-            const results = await this.dataManager.selectRecords(this.dbName, this.tableName, allFieldsForQuery, fieldFileNames, undefined, this.likeConditions.size > 0 ? this.likeConditions : undefined);
-            let filteredResults = [];
-            for (const row of results) {
-                const filteredRow = {};
-                if (this.selectAll || activeSelectedFields.length === 0) {
-                    Object.assign(filteredRow, row);
-                }
-                else {
-                    for (const field of activeSelectedFields) {
-                        if (row[field] !== undefined)
-                            filteredRow[field] = row[field];
-                    }
-                    if (row['created_at'] !== undefined)
-                        filteredRow['created_at'] = row['created_at'];
-                    if (row['updated_at'] !== undefined)
-                        filteredRow['updated_at'] = row['updated_at'];
-                }
-                filteredResults.push(filteredRow);
-            }
-            filteredResults = results.filter(row => {
+            let leftResults = await this.dataManager.selectRecords(this.dbName, this.tableName, allFieldsForQuery, fieldFileNames, undefined, this.likeConditions.size > 0 ? this.likeConditions : undefined);
+            // Apply initial filters (where, orWhere, whereIn, whereBetween) to leftResults
+            leftResults = leftResults.filter(row => {
                 const matchesWhere = Array.from(this.whereConditions.entries()).every(([k, v]) => row[k] === v);
                 const matchesOr = this.orWhereConditions.size === 0 ||
                     Array.from(this.orWhereConditions.entries()).some(([k, vals]) => vals.includes(row[k]));
                 return matchesWhere && matchesOr;
             });
             if (this.whereInConditions.size > 0) {
-                filteredResults = filteredResults.filter(row => {
+                leftResults = leftResults.filter(row => {
                     for (const [field, values] of this.whereInConditions) {
                         if (!values.includes(row[field]))
                             return false;
@@ -290,7 +274,7 @@ class QueryBuilder {
                 });
             }
             if (this.whereBetweenConditions.size > 0) {
-                filteredResults = filteredResults.filter(row => {
+                leftResults = leftResults.filter(row => {
                     for (const [field, { min, max }] of this.whereBetweenConditions) {
                         const val = parseFloat(row[field] || '0');
                         const minVal = parseFloat(min);
@@ -301,11 +285,82 @@ class QueryBuilder {
                     return true;
                 });
             }
+            let finalResults = [];
+            // --- Step 2: Handle Join if configured ---
+            if (this.joinConfig) {
+                const { rightTableName, rightField, leftField, selectFields } = this.joinConfig;
+                event_manager_1.EventManager.debug('Join initiated', { dbName: this.dbName, tableName: this.tableName, rightTableName, rightField, leftField });
+                if (!leftField) {
+                    event_manager_1.EventManager.error('Join requires a leftField to be specified.');
+                    return [];
+                }
+                // Collect all unique leftField values from the filtered leftResults
+                const leftJoinKeys = [...new Set(leftResults.map(row => row[leftField]).filter(Boolean))];
+                event_manager_1.EventManager.debug('Left Join Keys', { keys: leftJoinKeys, leftResultsCount: leftResults.length });
+                if (leftJoinKeys.length === 0) {
+                    event_manager_1.EventManager.debug('No left join keys found, returning empty result for join.');
+                    return [];
+                }
+                // Create a temporary QueryBuilder for the right table to fetch matching records
+                const rightTableQB = new QueryBuilder(this.dbName, rightTableName, this.dataManager, this.fieldManager, this.permissionManager, this.backupManager);
+                // Retrieve field definitions for the right table and convert to Map<string, FieldSchema>
+                const rightTableFieldDefs = this.fieldManager.getTableFields(this.dbName, rightTableName);
+                const schemasMap = new Map();
+                for (const fieldDef of rightTableFieldDefs) {
+                    schemasMap.set(fieldDef.name, {
+                        name: fieldDef.name,
+                        type: fieldDef.type,
+                        isAuto: fieldDef.isAuto || false,
+                        allowNull: fieldDef.allowNull || true,
+                        defaultValue: fieldDef.defaultValue || '',
+                        maxLength: fieldDef.maxLength || 255,
+                        fileName: fieldDef.fileName || ''
+                    });
+                }
+                rightTableQB.setSchemas(schemasMap);
+                // Apply whereIn to the right table
+                rightTableQB.whereIn(rightField, leftJoinKeys);
+                event_manager_1.EventManager.debug('Right Table QueryBuilder configured', { rightTableName, rightField, leftJoinKeysLength: leftJoinKeys.length });
+                // Ensure the join field is included in the select fields
+                const rightSelectFields = Array.isArray(selectFields) ? [...selectFields] : '*';
+                if (Array.isArray(rightSelectFields) && !rightSelectFields.includes(rightField)) {
+                    rightSelectFields.push(rightField);
+                }
+                let rightResults = await rightTableQB.select(rightSelectFields).list();
+                event_manager_1.EventManager.debug('Right Results fetched', { count: rightResults.length, results: rightResults });
+                // Perform the in-memory merge
+                for (const leftRow of leftResults) {
+                    const matchingRightRows = rightResults.filter(rightRow => String(rightRow[rightField]) === String(leftRow[leftField]));
+                    event_manager_1.EventManager.debug('Matching Right Rows for leftRow', { leftRowId: leftRow[leftField], matchingCount: matchingRightRows.length });
+                    if (matchingRightRows.length > 0) {
+                        for (const rightRow of matchingRightRows) {
+                            const mergedRow = { ...leftRow };
+                            // Merge fields from the right table, ensuring unique naming for conflicting fields
+                            for (const key in rightRow) {
+                                if (key !== rightField) { // Exclude the join key from the right table to avoid redundancy if desired
+                                    let uniqueKey = key;
+                                    let counter = 0;
+                                    while (mergedRow.hasOwnProperty(uniqueKey)) {
+                                        uniqueKey = `${key}_${counter++}`;
+                                    }
+                                    mergedRow[uniqueKey] = rightRow[key];
+                                }
+                            }
+                            finalResults.push(mergedRow);
+                        }
+                    }
+                }
+                event_manager_1.EventManager.debug('Merge complete', { finalResultsCount: finalResults.length });
+            }
+            else {
+                // No join, so the final results are just the filtered left results
+                finalResults = leftResults;
+            }
+            // --- Apply sorting, range, limit, page, groupBy, distinct to finalResults ---
             if (this.sortField) {
-                filteredResults.sort((a, b) => {
+                finalResults.sort((a, b) => {
                     const aVal = a[this.sortField] || '';
                     const bVal = b[this.sortField] || '';
-                    // Check if numeric
                     const aNum = parseFloat(String(aVal));
                     const bNum = parseFloat(String(bVal));
                     if (!isNaN(aNum) && !isNaN(bNum)) {
@@ -317,30 +372,29 @@ class QueryBuilder {
             }
             if (this.rangeMin !== '' || this.rangeMax !== '') {
                 let start = this.rangeMin !== '' ? parseInt(this.rangeMin, 10) : 0;
-                let end = this.rangeMax !== '' ? parseInt(this.rangeMax, 10) : filteredResults.length;
+                let end = this.rangeMax !== '' ? parseInt(this.rangeMax, 10) : finalResults.length;
                 if (isNaN(start) || start < 0)
                     start = 0;
                 if (isNaN(end) || end < 0)
-                    end = filteredResults.length;
-                if (start > filteredResults.length)
-                    start = filteredResults.length;
-                if (end > filteredResults.length - 1)
-                    end = filteredResults.length - 1;
-                filteredResults = filteredResults.slice(start, end + 1);
+                    end = finalResults.length;
+                if (start > finalResults.length)
+                    start = finalResults.length;
+                if (end > finalResults.length - 1)
+                    end = finalResults.length - 1;
+                finalResults = finalResults.slice(start, end + 1);
             }
-            // Pagination and Limit logic fixed
             if (this.pageNum > 0) {
                 const pageSize = this.limitNum > 0 ? this.limitNum : 10;
                 const start = (this.pageNum - 1) * pageSize;
                 const end = start + pageSize;
-                filteredResults = filteredResults.slice(start, end);
+                finalResults = finalResults.slice(start, end);
             }
             else if (this.limitNum > 0) {
-                filteredResults = filteredResults.slice(0, this.limitNum);
+                finalResults = finalResults.slice(0, this.limitNum);
             }
             if (this.groupByField) {
                 const grouped = {};
-                for (const row of filteredResults) {
+                for (const row of finalResults) {
                     const key = row[this.groupByField] || 'null';
                     if (!grouped[key])
                         grouped[key] = [];
@@ -355,11 +409,11 @@ class QueryBuilder {
                         _groupCount: String(rows.length)
                     });
                 }
-                filteredResults = groupedResults;
+                finalResults = groupedResults;
             }
             if (this.distinctField) {
                 const seen = new Set();
-                filteredResults = filteredResults.filter(row => {
+                finalResults = finalResults.filter(row => {
                     const key = row[this.distinctField] || '';
                     if (seen.has(key))
                         return false;
@@ -382,7 +436,8 @@ class QueryBuilder {
             this.distinctField = '';
             this.selectAll = false;
             this.selectedFields = [];
-            return filteredResults;
+            this.joinConfig = null; // Clear join config after execution
+            return finalResults;
         }
         catch (e) {
             event_manager_1.EventManager.error(`Query failed`, { error: e.message });
@@ -593,7 +648,18 @@ class QueryBuilder {
         qb.groupByField = this.groupByField;
         qb.distinctField = this.distinctField;
         qb.schemas = new Map(this.schemas);
+        if (this.joinConfig) {
+            qb.joinConfig = { ...this.joinConfig };
+        }
         return qb;
+    }
+    join(rightTableName, rightField, leftField, selectFields = '*') {
+        if (!this.permissionManager.hasAccess('list')) {
+            event_manager_1.EventManager.error('Permission denied: list access required for join');
+            return this;
+        }
+        this.joinConfig = { rightTableName, rightField, leftField, selectFields };
+        return this;
     }
 }
 exports.QueryBuilder = QueryBuilder;

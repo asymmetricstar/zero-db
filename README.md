@@ -77,13 +77,15 @@ import { ZeroDB } from 'zero-db-engine';
 // 1. Create database (256MB cache, overwrite existing, without AutoScaler)
   const db = new ZeroDB("./databases", 256, {
     auth:{pass:"pass",user:"user"},
-    overwrite: true,
+    overwrite: false ,
+    backup: './my_backups' ,
   });
 
 
 // 2. Create database (256MB cache, overwrite existing, with AutoScaler configuration)
 const db = new ZeroDB('./databases', 256, {
-  overwrite: true,
+  overwrite: false ,
+  backup: './my_backups' ,
   scaler: {
     sequentialThreshold: 10,    // Switch to batch processing after 10 records
     batchThreshold: 500,       // Switch to hybrid processing after 500 records
@@ -293,7 +295,71 @@ await table.whereBetween('age', '18', '65').list();
 ```
 ---
 
+### Example 2: LEFT JOIN to get all users and their orders (if any)
+
+This query will return all users, and their orders if they have any. Users without orders will have `NULL` for `order_id` and `amount`.
+
+## Example Usage
+
+Let's assume you have two tables: `users` and `orders`.
+
+*(Other join types like RIGHT JOIN and FULL OUTER JOIN might also be supported depending on the implementation.)*
+
+**Users Table:**
+| id  | name    |
+| :-- | :------ |
+| 1   | Alice   |
+| 2   | Bob     |
+| 3   | Charlie |
+
+**Orders Table:**
+| order_id | user_id | amount |
+| :------- | :------ | :----- |
+| 101      | 1       | 50.00  |
+| 102      | 1       | 75.50  |
+| 103      | 2       | 120.00 |
+| 104      | 4       | 30.00  | *(User ID 4 does not exist in users table)*
+
+```typescript
+import { ZeroDB } from 'zero-db';
+
+async function getAllUsersAndTheirOrders() {
+  const db = new ZeroDB();
+
+  try {
+    const queryResult = await db.query(`
+      SELECT
+        u.name,
+        o.order_id,
+        o.amount
+      FROM
+        users u
+      LEFT JOIN
+        orders o ON u.id = o.user_id
+    `);
+
+    console.log("All users and their orders (if any):", queryResult);
+    /* Expected Output might look like:
+    [
+      { name: 'Alice', order_id: 101, amount: 50.00 },
+      { name: 'Alice', order_id: 102, amount: 75.50 },
+      { name: 'Bob', order_id: 103, amount: 120.00 },
+      { name: 'Charlie', order_id: null, amount: null }
+    ]
+    */
+
+  } catch (error) {
+    console.error("Error executing left join query:", error);
+  }
+}
+
+getAllUsersAndTheirOrders();
+```
+
+
+
 ## 🛡 Maintenance and Backup
+[Backup / Restore Example](./backup.md)
 
 1. **Maintenance Mode:** `db.backupManager.setMaintenanceMode(true);` (Stops writing).
 2. **Backup:** `await db.backup('backup.tar.gz');`

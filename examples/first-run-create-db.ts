@@ -1,4 +1,12 @@
-import { ZeroDB, PermissionManager } from "./src";
+import { ZeroDB, EventManager } from "zero-db-engine";
+
+EventManager.on("log", (entry: any) => {
+  console.log("LOG:", entry.message);
+});
+
+EventManager.on("error", (entry: any) => {
+  console.log("ERROR:", entry.message);
+});
 
 async function main() {
   const db = new ZeroDB("./databases", 256, { overwrite: true });
