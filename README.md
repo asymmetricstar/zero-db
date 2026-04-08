@@ -295,66 +295,113 @@ await table.whereBetween('age', '18', '65').list();
 ```
 ---
 
-### Example 2: LEFT JOIN to get all users and their orders (if any)
-
-This query will return all users, and their orders if they have any. Users without orders will have `NULL` for `order_id` and `amount`.
 
 ## Example Usage
 
-Let's assume you have two tables: `users` and `orders`.
+Let's assume you have set up tables named `users`, `orders`, `addresses`, and `no_orders_users` and populated them with data as shown in the test cases.
 
-*(Other join types like RIGHT JOIN and FULL OUTER JOIN might also be supported depending on the implementation.)*
+**Users Table (simplified schema):**
+- `id` (auto, primary key)
+- `username` (string)
+- `email` (string)
 
-**Users Table:**
-| id  | name    |
-| :-- | :------ |
-| 1   | Alice   |
-| 2   | Bob     |
-| 3   | Charlie |
+**Orders Table (simplified schema):**
+- `orderId` (auto, primary key)
+- `userId` (string, foreign key to `users.id`)
+- `product` (string)
+- `amount` (number, although stored as string in test setup)
 
-**Orders Table:**
-| order_id | user_id | amount |
-| :------- | :------ | :----- |
-| 101      | 1       | 50.00  |
-| 102      | 1       | 75.50  |
-| 103      | 2       | 120.00 |
-| 104      | 4       | 30.00  | *(User ID 4 does not exist in users table)*
+**Addresses Table (simplified schema):**
+- `addressId` (auto, primary key)
+- `userId` (string, foreign key to `users.id`)
+- `address` (string)
+- `id` (string, potential naming conflict with `users.id`)
+
+### Example 1: INNER JOIN to get users and their orders
+
+This query will return only users who have placed orders, along with their order details. The `join` method takes the right table name, the foreign key field in the right table, the primary key field in the left table, and an array of fields to select from the right table.
 
 ```typescript
 import { ZeroDB } from 'zero-db';
+import * as path from 'path';
 
-async function getAllUsersAndTheirOrders() {
-  const db = new ZeroDB();
+// Assuming db is initialized and tables are set up as in join-test.ts
+// const db = new ZeroDB(path.join(__dirname, 'test_databases', 'new_join_test_db'));
+// db.useDatabase('join_db');
 
+async function getUsersWithOrders(db: ZeroDB) {
   try {
-    const queryResult = await db.query(`
-      SELECT
-        u.name,
-        o.order_id,
-        o.amount
-      FROM
-        users u
-      LEFT JOIN
-        orders o ON u.id = o.user_id
-    `);
+    const usersTable = db.table("users");
+    if (!usersTable) throw new Error("Users table not found.");
 
-    console.log("All users and their orders (if any):", queryResult);
+    // Using the programmatic API for INNER JOIN
+    const queryResult = await usersTable
+      .select(["id", "username", "email"]) // Fields from the 'users' table
+      .join("orders", "userId", "id", ["orderId", "product", "amount"]) // Join with 'orders'
+      .list(); // Execute the query
+
+    console.log("Users with their orders:", queryResult);
     /* Expected Output might look like:
     [
-      { name: 'Alice', order_id: 101, amount: 50.00 },
-      { name: 'Alice', order_id: 102, amount: 75.50 },
-      { name: 'Bob', order_id: 103, amount: 120.00 },
-      { name: 'Charlie', order_id: null, amount: null }
+      { id: '1', username: 'alice', email: 'alice@example.com', orderId: '101', product: 'Laptop', amount: '1200' },
+      { id: '1', username: 'alice', email: 'alice@example.com', orderId: '102', product: 'Mouse', amount: '25' },
+      { id: '2', username: 'bob', email: 'bob@example.com', orderId: '103', product: 'Keyboard', amount: '75' }
     ]
     */
 
   } catch (error) {
-    console.error("Error executing left join query:", error);
+    console.error("Error executing join query:", error);
   }
 }
 
-getAllUsersAndTheirOrders();
+// To run this example, you would need to initialize ZeroDB and set up tables.
+// Example call (assuming db is initialized):
+// getUsersWithOrders(db);
 ```
+### Example 3: Handling Field Name Conflicts during Joins
+
+When joining tables where a field name is the same in both tables (e.g., `id` in `users` and `addresses`), ZeroDB automatically renames the conflicting field from the *right* table to prevent ambiguity. It typically appends `_0` to the conflicting field name from the right table.
+
+```typescript
+import { ZeroDB } from 'zero-db';
+import * as path from 'path';
+
+// Assuming db is initialized and tables are set up as in join-test.ts
+// const db = new ZeroDB(path.join(__dirname, 'test_databases', 'new_join_test_db'));
+// db.useDatabase('join_db');
+
+async function joinWithFieldConflict(db: ZeroDB) {
+  try {
+    const usersTable = db.table("users");
+    if (!usersTable) throw new Error("Users table not found.");
+
+    const queryResult = await usersTable
+      .where({ username: "alice" })
+      .join("addresses", "userId", "id", ["address", "id"]) // Joining with 'addresses' which also has an 'id' field
+      .list();
+
+    console.log("Join with field conflict:", queryResult);
+    /* Expected Output might look like:
+    [
+      {
+        id: '1', // users.id
+        username: 'alice',
+        email: 'alice@example.com',
+        address: '123 Main St',
+        id_0: 'address_abc' // addresses.id, renamed to id_0 due to conflict
+      }
+    ]
+    */
+  } catch (error) {
+    console.error("Error executing join with field conflict:", error);
+  }
+}
+
+// Example call:
+// joinWithFieldConflict(db);
+```
+
+**Note:** The exact API methods (`db.table()`, `.select()`, `.join()`, `.leftJoin()`, `.where()`, `.list()`) and their parameters are based on the observed syntax in `join-test.ts`. You should refer to the `zero-db` project's specific documentation or source code for definitive usage.
 
 
 
@@ -365,6 +412,7 @@ getAllUsersAndTheirOrders();
 2. **Backup:** `await db.backup('backup.tar.gz');`
 3. **Restore:** `await db.restore('backup.tar.gz');`
 4. **Exit Mode:** `db.backupManager.setMaintenanceMode(false);` (Reactivates the system).
+5. **Set Backup Folder:** `ZeroDB("./databases", 256, { backup: './my_backups'});` (ZeroDB instance to use the ./my_backups directory).
 
 ---
 

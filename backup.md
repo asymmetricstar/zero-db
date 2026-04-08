@@ -1,101 +1,81 @@
-# Understanding and Using Backup and Restore in ZeroDB
+# Understanding and Using Backup and Restore in ZeroDB (Simplified API)
 
-Data backup is a critical process for safeguarding your database against data loss, corruption, or hardware failures. ZeroDB provides functionalities to create backups of your database state and restore it when necessary.
+This guide explains how to perform essential backup and restore operations using a simplified API, as demonstrated in common examples. These operations are crucial for safeguarding your data and ensuring its availability.
 
-## Why Use Backup and Restore?
+## Key Concepts
 
--   **Data Recovery:** Protects against accidental data deletion, system crashes, or disk failures.
--   **Versioning:** Allows you to revert to a previous state of your database if a recent change introduces issues.
--   **Migration:** Can be used to transfer data between different environments or instances.
+-   **Maintenance Mode:** Temporarily disabling write operations to ensure data consistency during backup or restore procedures. This prevents data corruption by ensuring no changes are made while the state is being saved or loaded.
+-   **Backup:** Saving the current state of the database to a file.
+-   **Restore:** Loading a previously saved backup file to revert the database to that specific state.
 
-## Backup Features
+## Core Operations
 
-ZeroDB's backup manager likely offers the following capabilities:
+ZeroDB provides a straightforward API for managing backups.
 
--   **Create Backup:** Saves the current state of your database to a file or archive.
--   **Restore Backup:** Loads a previously saved backup to revert the database to that state.
--   **Backup Formats:** Backups might be stored in a compressed format (like `.zip`) for efficient storage and transfer.
--   **Selective Backups:** Potentially allows backing up specific tables or data ranges.
+### 1. Enabling Maintenance Mode
 
-## Example Usage
-
-Let's assume you have a ZeroDB instance running and have populated some data.
-
-### Example 1: Creating a Database Backup
-
-This example demonstrates how to create a backup of your current database state.
+Before performing backup or restore operations, it's recommended to enable maintenance mode. This prevents any new writes or modifications to the database, ensuring a consistent snapshot.
 
 ```typescript
-import { ZeroDB } from 'zero-db';
-import * as path from 'path'; // To handle file paths
+// Assuming 'db' is an initialized ZeroDB instance
+// Example: const db = new ZeroDB('./databases', 64);
 
-async function createDatabaseBackup() {
-  const db = new ZeroDB(); // Initialize ZeroDB
-  const backupFileName = 'my-database-backup.zip'; // Name for the backup file
-  const backupDir = path.join(__dirname, 'backups'); // Directory to save backups
-
-  try {
-    console.log(`Creating backup: \${backupFileName}...`);
-    // Assuming a method like 'backupManager.create' exists
-    // It might take a directory path and a filename.
-    const backupResult = await db.backupManager.create({
-      directory: backupDir,
-      fileName: backupFileName,
-      // format: 'zip' // Potentially an option for backup format
-    });
-
-    if (backupResult.success) {
-      console.log(`Backup created successfully at: \${backupResult.filePath}`);
-    } else {
-      console.error("Backup creation failed:", backupResult.error);
-    }
-
-  } catch (error) {
-    console.error("An unexpected error occurred during backup:", error);
-  } finally {
-    // db.close(); // If there's a close method
-  }
-}
-
-createDatabaseBackup();
+db.backupManager.setMaintenanceMode(true);
+console.log("Maintenance mode enabled. Writing operations are temporarily paused.");
 ```
 
-### Example 2: Restoring from a Database Backup
+### 2. Creating a Backup
 
-This example shows how to restore your database to a previous state from a backup file. **Caution:** Restoring a backup will overwrite your current database state.
+Once maintenance mode is enabled, you can create a backup. The `db.backup()` method is used to save the current database state to a specified file.
 
 ```typescript
-import { ZeroDB } from 'zero-db';
-import * as path from 'path';
+// Continuing from the previous step, with maintenance mode enabled
 
-async function restoreDatabaseFromBackup() {
-  const db = new ZeroDB(); // Initialize ZeroDB
-  const backupFileName = 'my-database-backup.zip'; // The backup file to restore from
-  const backupDir = path.join(__dirname, 'backups'); // Directory where the backup is located
-  const backupFilePath = path.join(backupDir, backupFileName);
+// Replace 'backup.tar.gz' with your desired backup filename
+const backupFileName = 'backup.tar.gz'; 
 
-  try {
-    console.log(`Restoring database from: \${backupFilePath}...`);
-    // Assuming a method like 'backupManager.restore' exists
-    // It might take the full path to the backup file.
-    const restoreResult = await db.backupManager.restore({
-      filePath: backupFilePath,
-    });
-
-    if (restoreResult.success) {
-      console.log("Database restored successfully.");
-    } else {
-      console.error("Database restore failed:", restoreResult.error);
-    }
-
-  } catch (error) {
-    console.error("An unexpected error occurred during restore:", error);
-  } finally {
-    // db.close(); // If there's a close method
-  }
+try {
+  await db.backup(backupFileName);
+  console.log(`✅ Backup created successfully: ${backupFileName}`);
+} catch (error) {
+  console.error(`❌ Error creating backup: ${error}`);
 }
-
-restoreDatabaseFromBackup();
 ```
 
-**Note:** The exact API methods (`db.backupManager.create`, `db.backupManager.restore`, `directory`, `fileName`, `filePath`, etc.) and their parameters are hypothetical and based on common patterns. You should refer to the official `zero-db` documentation for the precise implementation details.
+### 3. Restoring from a Backup
+
+To revert the database to a previous state, use the `db.restore()` method, providing the path to the backup file. **Caution:** Restoring a backup will overwrite the current database state.
+
+```typescript
+// Assuming maintenance mode is still enabled from the backup step,
+// or re-enabled if other operations were performed.
+
+// Replace 'backup.tar.gz' with the actual name of your backup file
+const backupFileNameToRestore = 'backup.tar.gz'; 
+
+try {
+  await db.restore(backupFileNameToRestore);
+  console.log(`✅ Database restored successfully from: ${backupFileNameToRestore}`);
+} catch (error) {
+  console.error(`❌ Error restoring database: ${error}`);
+}
+```
+
+### 4. Disabling Maintenance Mode
+
+After completing backup or restore operations, it's essential to disable maintenance mode to allow writing operations to resume.
+
+```typescript
+// Following a successful restore or backup operation
+
+db.backupManager.setMaintenanceMode(false);
+console.log("Maintenance mode disabled. Writing operations are reactivated.");
+
+// If you are done with the ZeroDB instance, you might want to exit
+// db.exit(); // Uncomment if needed
+```
+
+**Important Notes:**
+- The exact availability and behavior of `db.backup()` and `db.restore()` methods might differ from the `backupManager` methods shown in previous examples. Always refer to the specific `zero-db` API documentation for the version you are using.
+- Ensure that the backup file path provided to `db.restore()` is correct and accessible.
+- Handle encryption passwords securely if using encrypted backups. The examples above assume unencrypted backups for simplicity as per the provided snippet.
