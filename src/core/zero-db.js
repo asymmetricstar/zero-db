@@ -71,7 +71,7 @@ class ZeroDB extends node_events_1.EventEmitter {
             event_manager_1.EventManager.info('Existing database overwritten');
         }
         this.isNetwork = (0, path_utils_1.isNetworkPath)(this.rootPath);
-        this.requestedDb = options.db || '';
+        this.requestedDb = options.db || ''; // Keep requestedDb as a fallback
         this.cache = this.isNetwork ? new cache_manager_1.CacheManager(0) : new cache_manager_1.CacheManager(cacheMB);
         this.dbManager = new database_manager_1.DatabaseManager(this.rootPath, this.cache);
         this.tableManager = new table_manager_1.TableManager(this.rootPath, this.cache);
@@ -84,15 +84,17 @@ class ZeroDB extends node_events_1.EventEmitter {
             event_manager_1.EventManager.info('AutoScaler configuration updated', { scaler: options.scaler });
         }
         event_manager_1.EventManager.info('ZeroDB instance initialized', { rootPath, cacheMB, isNetwork: this.isNetwork });
+        // Check for auth credentials and attempt auto-login using options.auth.database
         if (options.auth?.user && options.auth?.pass) {
             this.storedCredentials = { username: options.auth.user, password: options.auth.pass };
-            if (options.db && options.db !== "*") {
+            // Prioritize options.auth.database for auto-login
+            if (options.auth.database && options.auth.database !== "*") {
                 try {
-                    this.login(options.db, options.auth.user, options.auth.pass);
-                    event_manager_1.EventManager.info(`Auto-logged in to database '${options.db}'`);
+                    this.login(options.auth.database, options.auth.user, options.auth.pass);
+                    event_manager_1.EventManager.info(`Auto-logged in to database '${options.auth.database}'`);
                 }
                 catch (e) {
-                    event_manager_1.EventManager.warn(`Failed to auto-login to database '${options.db}'`, { error: e.message });
+                    event_manager_1.EventManager.warn(`Failed to auto-login to database '${options.auth.database}'`, { error: e.message });
                 }
             }
         }
@@ -476,6 +478,43 @@ class ZeroDB extends node_events_1.EventEmitter {
         }
         catch (e) {
             event_manager_1.EventManager.error(`Failed to add user '${username}'`, { error: e.message, dbName: dbName || this.currentDb });
+            return null;
+        }
+    }
+    deleteUser(username, dbName) {
+        try {
+            const targetDb = dbName || this.currentDb;
+            if (!targetDb) {
+                event_manager_1.EventManager.error('No database selected');
+                return null;
+            }
+            if (!this.currentUser) {
+                event_manager_1.EventManager.error('Not authenticated');
+                return null;
+            }
+            // Security check: Only grand users can delete other users.
+            // Users can always delete themselves.
+            if (!this.currentUser.isGrand && this.currentUser.username !== username) {
+                event_manager_1.EventManager.error(`Permission denied: User '${this.currentUser.username}' cannot delete user '${username}'`);
+                return null;
+            }
+            const success = this.dbManager.deleteUser(targetDb, username);
+            if (success) {
+                event_manager_1.EventManager.info(`User '${username}' deleted from database '${targetDb}'`);
+                // If we deleted the current user, log them out
+                if (this.currentUser && this.currentUser.username === username && targetDb === this.currentDb) {
+                    this.logout();
+                    event_manager_1.EventManager.info(`Current user '${username}' logged out after deletion`);
+                }
+                return this;
+            }
+            else {
+                event_manager_1.EventManager.error(`User '${username}' not found in database '${targetDb}'`, { dbName: targetDb });
+                return null;
+            }
+        }
+        catch (e) {
+            event_manager_1.EventManager.error(`Failed to delete user '${username}'`, { error: e.message, dbName: dbName || this.currentDb });
             return null;
         }
     }

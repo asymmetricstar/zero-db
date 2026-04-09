@@ -17,6 +17,7 @@ interface ZeroDBOptions {
     auth?: {
         user?: string;
         pass?: string;
+        database?: string;
     };
     overwrite?: boolean;
     scaler?: Partial<ScaleConfig>;
@@ -69,6 +70,7 @@ export declare class ZeroDB extends EventEmitter {
     removeOwner(dbName: string, username: string): Promise<boolean>;
     setPublic(dbName: string, isPublic: boolean): Promise<boolean>;
     addUser(username: string, password: string, permissions: Partial<Record<PermissionType, boolean>> | PermissionType[] | number, isGrand?: boolean, dbName?: string): ZeroDB | null;
+    deleteUser(username: string, dbName?: string): ZeroDB | null;
     renameDatabase(newName: string): ZeroDB | null;
     renameTable(oldName: string, newName: string): ZeroDB | null;
     renameField(tableName: string, oldName: string, newName: string): ZeroDB | null;

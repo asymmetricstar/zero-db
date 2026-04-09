@@ -103,6 +103,7 @@ const db = new ZeroDB('./databases', 256, {
 // Create database & user
 db.createDatabase('myapp');
 db.addUser('admin', 'password123', ['add','delete','list','update','create','drop','rename'], true, 'myapp');
+//db.deleteUser('eskikullanici', 'my_app'); -> Delete user
 db.login('myapp', 'admin', 'password123');
 
 // Create table
@@ -156,6 +157,9 @@ db.addUser('editor', 'pass', ['add', 'update', 'list'], false, 'myapp');
 // Login/Logout
 db.login('my_db', 'username', 'password');
 db.logout();
+
+// Delete user
+db.deleteUser('username', 'my_db');
 
 // Public/Private
 db.setPublic('my_db', true);
