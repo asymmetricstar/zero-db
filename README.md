@@ -76,7 +76,7 @@ import { ZeroDB } from 'zero-db-engine';
 
 // 1. Create database (256MB cache, overwrite existing, without AutoScaler)
   const db = new ZeroDB("./databases", 256, {
-    auth:{pass:"pass",user:"user"},
+    auth: { database: "my_app", pass: "123456", user: "admin" },
     overwrite: false ,
     backup: './my_backups' ,
   });
