@@ -253,6 +253,13 @@ class DatabaseManager {
         this.saveRegistryFromIndex();
         return true;
     }
+    listUsers(dbName) {
+        this.loadIndex();
+        const db = this.dbIndex.databases.get(dbName);
+        if (!db)
+            return [];
+        return Array.from(db.users.keys());
+    }
     deleteUser(dbName, username) {
         this.loadIndex();
         const db = this.dbIndex.databases.get(dbName);

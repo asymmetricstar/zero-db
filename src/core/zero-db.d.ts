@@ -69,6 +69,7 @@ export declare class ZeroDB extends EventEmitter {
     addOwner(dbName: string, username: string): Promise<boolean>;
     removeOwner(dbName: string, username: string): Promise<boolean>;
     setPublic(dbName: string, isPublic: boolean): Promise<boolean>;
+    listUsers(dbName?: string): string[];
     addUser(username: string, password: string, permissions: Partial<Record<PermissionType, boolean>> | PermissionType[] | number, isGrand?: boolean, dbName?: string): ZeroDB | null;
     deleteUser(username: string, dbName?: string): ZeroDB | null;
     renameDatabase(newName: string): ZeroDB | null;

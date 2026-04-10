@@ -76,11 +76,10 @@ import { ZeroDB } from 'zero-db-engine';
 
 // 1. Create database (256MB cache, overwrite existing, without AutoScaler)
   const db = new ZeroDB("./databases", 256, {
-    auth:{pass:"pass",user:"user"},
-    overwrite: false ,
+    auth: { database: "my_app", pass: "123456", user: "admin" },
+    overwrite: false,
     backup: './my_backups' ,
   });
-
 
 // 2. Create database (256MB cache, overwrite existing, with AutoScaler configuration)
 const db = new ZeroDB('./databases', 256, {
@@ -100,10 +99,14 @@ const db = new ZeroDB('./databases', 256, {
   }
 });
 
+
 // Create database & user
 db.createDatabase('myapp');
 db.addUser('admin', 'password123', ['add','delete','list','update','create','drop','rename'], true, 'myapp');
-//db.deleteUser('eskikullanici', 'my_app'); -> Delete user
+// db.deleteUser('eskikullanici', 'my_app'); -> Delete user
+// db.listUsers('my_app'); -> List Database users
+// const users = db.listUsers('my_app');
+// console.log("Kullanıcı listesi:", users); // ["admin", "editor"]
 db.login('myapp', 'admin', 'password123');
 
 // Create table

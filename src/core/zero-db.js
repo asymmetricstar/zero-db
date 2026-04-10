@@ -448,6 +448,24 @@ class ZeroDB extends node_events_1.EventEmitter {
             return false;
         }
     }
+    listUsers(dbName) {
+        try {
+            const targetDb = dbName || this.currentDb;
+            if (!targetDb) {
+                event_manager_1.EventManager.error('No database selected');
+                return [];
+            }
+            if (!this.currentUser || !this.currentUser.isGrand) {
+                event_manager_1.EventManager.error('Permission denied: Only grand users can list users');
+                return [];
+            }
+            return this.dbManager.listUsers(targetDb);
+        }
+        catch (e) {
+            event_manager_1.EventManager.error(`Failed to list users`, { error: e.message, dbName: dbName || this.currentDb });
+            return [];
+        }
+    }
     addUser(username, password, permissions, isGrand = false, dbName) {
         try {
             const targetDb = dbName || this.currentDb;
