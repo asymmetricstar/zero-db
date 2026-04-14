@@ -9,8 +9,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.QueryBuilder = void 0;
 const insert_engine_1 = require("../engine/insert-engine");
 const event_manager_1 = require("../utils/event-manager");
+const modify_builder_1 = require("./modify-builder");
 class QueryBuilder {
-    constructor(dbName, tableName, dataManager, fieldManager, permissionManager, backupManager) {
+    constructor(dbName, tableName, dataManager, fieldManager, tableManager, permissionManager, backupManager) {
         this.selectedFields = [];
         this.selectAll = false;
         this.whereConditions = new Map();
@@ -33,6 +34,7 @@ class QueryBuilder {
         this.tableName = tableName;
         this.dataManager = dataManager;
         this.fieldManager = fieldManager;
+        this.tableManager = tableManager;
         this.permissionManager = permissionManager;
         this.backupManager = backupManager;
         this.insertEngine = new insert_engine_1.InsertEngine(dataManager);
@@ -41,6 +43,10 @@ class QueryBuilder {
         if (this.backupManager.maintenanceMode) {
             throw new Error("Sistem bakım modundadır, yazma işlemi yapılamaz.");
         }
+    }
+    modify() {
+        this.checkWriteAccess();
+        return new modify_builder_1.ModifyBuilder(this.dbName, this.tableName, this.tableManager, this.dataManager, this.permissionManager);
     }
     setSchemas(schemas) {
         this.schemas = schemas;
@@ -302,7 +308,7 @@ class QueryBuilder {
                     return [];
                 }
                 // Create a temporary QueryBuilder for the right table to fetch matching records
-                const rightTableQB = new QueryBuilder(this.dbName, rightTableName, this.dataManager, this.fieldManager, this.permissionManager, this.backupManager);
+                const rightTableQB = new QueryBuilder(this.dbName, rightTableName, this.dataManager, this.fieldManager, this.tableManager, this.permissionManager, this.backupManager);
                 // Retrieve field definitions for the right table and convert to Map<string, FieldSchema>
                 const rightTableFieldDefs = this.fieldManager.getTableFields(this.dbName, rightTableName);
                 const schemasMap = new Map();
@@ -631,7 +637,7 @@ class QueryBuilder {
         }
     }
     clone() {
-        const qb = new QueryBuilder(this.dbName, this.tableName, this.dataManager, this.fieldManager, this.permissionManager, this.backupManager);
+        const qb = new QueryBuilder(this.dbName, this.tableName, this.dataManager, this.fieldManager, this.tableManager, this.permissionManager, this.backupManager);
         qb.selectedFields = [...this.selectedFields];
         qb.whereConditions = new Map(this.whereConditions);
         qb.orWhereConditions = new Map();

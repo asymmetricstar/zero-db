@@ -48,6 +48,14 @@ export declare class TableManager {
     dropTable(dbName: string, tableName: string): boolean;
     renameTable(dbName: string, oldName: string, newName: string): void;
     renameField(dbName: string, tableName: string, oldName: string, newName: string, oldFileName: string): void;
+    dropField(dbName: string, tableName: string, fieldName: string): boolean;
+    modifyField(dbName: string, tableName: string, fieldName: string, type: FieldType, options?: {
+        isAuto?: boolean;
+        allowNull?: boolean;
+        defaultValue?: string;
+        maxLength?: number;
+    }): boolean;
+    private updateTableSchema;
     getFieldFileName(dbName: string, tableName: string, fieldName: string): string | null;
     private appendToFile;
 }

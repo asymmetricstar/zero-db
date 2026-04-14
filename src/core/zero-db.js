@@ -271,7 +271,7 @@ class ZeroDB extends node_events_1.EventEmitter {
                 return null;
             }
             const permissionManager = new permission_manager_1.PermissionManager(this.currentUser.permission);
-            const qb = new query_builder_1.QueryBuilder(this.currentDb, tableName, this.dataManager, this.fieldManager, permissionManager, this.backupManager);
+            const qb = new query_builder_1.QueryBuilder(this.currentDb, tableName, this.dataManager, this.fieldManager, this.tableManager, permissionManager, this.backupManager);
             const tableDef = this.tableManager.getTableDefinition(this.currentDb, tableName);
             const fieldMappings = this.tableManager.getAllFields(this.currentDb, tableName);
             if (tableDef) {

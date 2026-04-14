@@ -8,12 +8,15 @@ import { SelectResult } from '../types';
 import { PermissionManager } from '../managers/permission-manager';
 import { DataManager, FieldSchema } from '../managers/data-manager';
 import { FieldManager } from '../managers/field-manager';
+import { TableManager } from '../managers/table-manager';
 import { BackupManager } from '../managers/backup-manager';
+import { ModifyBuilder } from './modify-builder';
 export declare class QueryBuilder {
     private dbName;
     private tableName;
     private dataManager;
     private fieldManager;
+    private tableManager;
     private permissionManager;
     private backupManager;
     private insertEngine;
@@ -35,8 +38,9 @@ export declare class QueryBuilder {
     private joinConfig;
     private schemas;
     private executed;
-    constructor(dbName: string, tableName: string, dataManager: DataManager, fieldManager: FieldManager, permissionManager: PermissionManager, backupManager: BackupManager);
+    constructor(dbName: string, tableName: string, dataManager: DataManager, fieldManager: FieldManager, tableManager: TableManager, permissionManager: PermissionManager, backupManager: BackupManager);
     private checkWriteAccess;
+    modify(): ModifyBuilder;
     setSchemas(schemas: Map<string, FieldSchema>): QueryBuilder;
     select(fields: string[] | '*'): QueryBuilder;
     where(conditions: Record<string, string>): QueryBuilder;

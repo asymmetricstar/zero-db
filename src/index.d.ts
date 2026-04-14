@@ -6,6 +6,7 @@
  */
 export { ZeroDB } from './core/zero-db';
 export { QueryBuilder } from './query/query-builder';
+export { ModifyBuilder } from './query/modify-builder';
 export { DatabaseManager, DatabaseInfo } from './managers/database-manager';
 export { TableManager } from './managers/table-manager';
 export { FieldManager } from './managers/field-manager';

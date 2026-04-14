@@ -385,21 +385,119 @@ class TableManager {
         }
         const key = `${dbName}:${tableName}`;
         this.tableIndex.delete(key);
+        // Update Manifest
         const manifestContent = this.getManifestContent();
-        const newLines = [];
+        const newManifestLines = [];
         for (const line of manifestContent.split('\n')) {
             const parts = line.split(':');
             if (parts.length >= 4 && parts[0] === dbName && parts[1] === tableName && parts[2] === oldName) {
                 parts[2] = newName;
                 parts[3] = newFileName;
-                newLines.push(parts.join(':'));
+                newManifestLines.push(parts.join(':'));
             }
             else {
-                newLines.push(line);
+                newManifestLines.push(line);
             }
         }
-        this.writeBinaryFile(this.manifestPath, newLines.join('\n'));
+        this.writeBinaryFile(this.manifestPath, newManifestLines.join('\n'));
         this.invalidateManifest();
+        // Update Schema
+        this.updateTableSchema(dbName, tableName, (fields) => {
+            const newFields = [];
+            for (const fieldLine of fields) {
+                if (fieldLine.startsWith(`${oldName}:`)) {
+                    newFields.push(fieldLine.replace(`${oldName}:`, `${newName}:`));
+                }
+                else {
+                    newFields.push(fieldLine);
+                }
+            }
+            return newFields;
+        });
+    }
+    dropField(dbName, tableName, fieldName) {
+        if (fieldName === 'created_at' || fieldName === 'updated_at') {
+            return false; // Cannot drop system fields
+        }
+        const fileName = this.getFieldFileName(dbName, tableName, fieldName);
+        if (!fileName)
+            return false;
+        // Delete physical file
+        const tableDir = this.getTableDir(dbName, tableName);
+        const fieldPath = path.join(tableDir, fileName);
+        if (fs.existsSync(fieldPath)) {
+            fs.unlinkSync(fieldPath);
+        }
+        // Update Manifest
+        const manifestContent = this.getManifestContent();
+        const newManifestLines = [];
+        for (const line of manifestContent.split('\n')) {
+            const parts = line.split(':');
+            if (parts.length >= 4 && parts[0] === dbName && parts[1] === tableName && parts[2] === fieldName) {
+                continue;
+            }
+            newManifestLines.push(line);
+        }
+        this.writeBinaryFile(this.manifestPath, newManifestLines.join('\n'));
+        this.invalidateManifest();
+        // Update Schema
+        this.updateTableSchema(dbName, tableName, (fields) => {
+            return fields.filter(f => !f.startsWith(`${fieldName}:`));
+        });
+        const key = `${dbName}:${tableName}`;
+        this.tableIndex.delete(key);
+        return true;
+    }
+    modifyField(dbName, tableName, fieldName, type, options = {}) {
+        if (!this.hasField(dbName, tableName, fieldName)) {
+            return false;
+        }
+        const isAuto = options.isAuto ?? false;
+        const allowNull = options.allowNull ?? true;
+        const defaultValue = options.defaultValue ?? '';
+        const maxLength = options.maxLength ?? 255;
+        const typeStr = isAuto ? 'auto' : type;
+        const nullStr = allowNull ? 'Null' : 'NOT';
+        const newFieldDef = `${fieldName}:(${typeStr}):(${nullStr}):(${defaultValue}):${maxLength}`;
+        this.updateTableSchema(dbName, tableName, (fields) => {
+            return fields.map(f => f.startsWith(`${fieldName}:`) ? newFieldDef : f);
+        });
+        const key = `${dbName}:${tableName}`;
+        this.tableIndex.delete(key);
+        return true;
+    }
+    updateTableSchema(dbName, tableName, updateFn) {
+        const schemaContent = this.getSchemaContent();
+        const lines = schemaContent.split('\n');
+        const newLines = [];
+        let i = 0;
+        while (i < lines.length) {
+            const line = lines[i].trim();
+            if (line === `${dbName}:${tableName}`) {
+                newLines.push(line);
+                i++;
+                const tableFields = [];
+                while (i < lines.length) {
+                    const nextLine = lines[i].trim();
+                    if (nextLine === '' || (nextLine.includes(':') && !nextLine.includes(':('))) {
+                        // End of this table's schema or another table header
+                        break;
+                    }
+                    tableFields.push(nextLine);
+                    i++;
+                }
+                const updatedFields = updateFn(tableFields);
+                newLines.push(...updatedFields);
+            }
+            else {
+                if (line !== '') {
+                    newLines.push(line);
+                }
+                i++;
+            }
+        }
+        this.writeBinaryFile(this.schemaPath, newLines.join('\n') + '\n');
+        this.invalidateSchema();
     }
     getFieldFileName(dbName, tableName, fieldName) {
         this.loadTableIndex(dbName, tableName);
