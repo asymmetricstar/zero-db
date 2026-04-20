@@ -4,7 +4,7 @@
  *
  * @asymmetricstar - https://github.com/asymmetricstar
  */
-export type FieldType = 'auto' | 'string' | 'number' | 'boolean' | 'timestamp';
+export type FieldType = 'auto' | 'string' | 'number' | 'boolean' | 'timestamp' | 'object' | 'any';
 export interface FieldDefinition {
     name: string;
     type: FieldType;

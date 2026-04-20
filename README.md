@@ -210,6 +210,35 @@ The `addUser` method accepts an optional `status` parameter (boolean) to control
 
 Access table-specific methods via `db.table('tableName')`.
 
+#### Field Types
+
+ZeroDB supports 7 field types:
+
+| Type | Description | Example |
+| :--- | :--- | :--- |
+| `auto` | Auto-incrementing ID | `1`, `2`, `3` |
+| `string` | Text data (max 255 chars) | `'Hello World'` |
+| `number` | Numeric values | `42`, `3.14` |
+| `boolean` | True/false values | `true`, `false` |
+| `timestamp` | Auto-managed timestamp | Auto-generated |
+| **`object`** | Valid JSON data | `{ key: 'value' }` |
+| **`any`** | Free-form data | Any string |
+
+**New Types Usage:**
+```typescript
+db.createTable('users', [
+  { name: 'id', type: 'auto', option: { isAuto: true } },
+  { name: 'profile', type: 'object' },  // Valid JSON required
+  { name: 'notes', type: 'any' }        // Any data allowed
+]);
+
+// Insert
+await table.add({
+  profile: JSON.stringify({ age: 25, city: 'NYC' }),
+  notes: 'Any free text here!'
+});
+```
+
 #### Querying (READ)
 - `.select('*')` or `.select(['field1', 'field2'])`: Choose fields to retrieve.
 - `.where({ id: '1' })`: Standard equality filter.

@@ -211,7 +211,7 @@ class TableManager {
         const isAuto = options.isAuto ?? false;
         const allowNull = options.allowNull ?? true;
         const defaultValue = options.defaultValue ?? '';
-        const maxLength = options.maxLength ?? 255;
+        const maxLength = options.maxLength ?? (type === 'object' || type === 'any' ? 65535 : 255);
         const fileName = crypto_1.Crypto.hash(fieldName).substring(0, 12) + '.zdb';
         const tableDir = this.getTableDir(dbName, tableName);
         if (!fs.existsSync(tableDir)) {
@@ -455,7 +455,7 @@ class TableManager {
         const isAuto = options.isAuto ?? false;
         const allowNull = options.allowNull ?? true;
         const defaultValue = options.defaultValue ?? '';
-        const maxLength = options.maxLength ?? 255;
+        const maxLength = options.maxLength ?? (type === 'object' || type === 'any' ? 65535 : 255);
         const typeStr = isAuto ? 'auto' : type;
         const nullStr = allowNull ? 'Null' : 'NOT';
         const newFieldDef = `${fieldName}:(${typeStr}):(${nullStr}):(${defaultValue}):${maxLength}`;

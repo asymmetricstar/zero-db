@@ -257,7 +257,7 @@ class DataManager {
         return { valid: errors.length === 0, errors, castedData };
     }
     castValue(fieldName, value, schema, errors) {
-        if (schema.maxLength > 0 && value.length > schema.maxLength) {
+        if (schema.maxLength > 0 && value.length > schema.maxLength && schema.type !== 'object' && schema.type !== 'any') {
             errors.push(`Field '${fieldName}' exceeds max length (${schema.maxLength})`);
             return null;
         }
@@ -274,6 +274,17 @@ class DataManager {
                     return null;
                 }
                 return (value === 'true' || value === '1') ? '1' : '0';
+            case 'object':
+                try {
+                    JSON.parse(value);
+                    return value;
+                }
+                catch {
+                    errors.push(`Field '${fieldName}' must be valid JSON object, got: ${value}`);
+                    return null;
+                }
+            case 'any':
+                return value;
             case 'string':
             case 'auto':
                 return value;
