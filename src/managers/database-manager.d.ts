@@ -32,7 +32,7 @@ export declare class DatabaseManager {
     }): boolean;
     dropDatabase(dbName: string): boolean;
     authenticate(dbName: string, username: string, password: string): UserCredentials | null;
-    addUser(dbName: string, username: string, password: string, permission: number, isGrand?: boolean): boolean;
+    addUser(dbName: string, username: string, password: string, permission: number, isGrand?: boolean, status?: boolean): boolean;
     listUsers(dbName: string): string[];
     deleteUser(dbName: string, username: string): boolean;
     getDatabaseInfo(dbName: string): DatabaseInfo | null;

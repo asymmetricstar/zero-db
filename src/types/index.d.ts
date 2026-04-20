@@ -34,6 +34,7 @@ export interface UserCredentials {
     password: string;
     permission: number;
     isGrand?: boolean;
+    status?: boolean;
 }
 export interface DatabaseCredentials {
     dbName: string;

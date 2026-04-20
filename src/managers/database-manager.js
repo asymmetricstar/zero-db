@@ -244,12 +244,12 @@ class DatabaseManager {
         }
         return null;
     }
-    addUser(dbName, username, password, permission, isGrand = false) {
+    addUser(dbName, username, password, permission, isGrand = false, status = true) {
         this.loadIndex();
         const db = this.dbIndex.databases.get(dbName);
         if (!db)
             return false;
-        db.users.set(username, { username, password, permission, isGrand });
+        db.users.set(username, { username, password, permission, isGrand, status });
         this.saveRegistryFromIndex();
         return true;
     }

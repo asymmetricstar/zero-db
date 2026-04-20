@@ -172,7 +172,24 @@ db.addUser('admin', 'pass123', 127, true, 'myapp');
 
 // Object format
 db.addUser('viewer', 'pass123', { list: true }, false, 'myapp');
+
+// With status (user account active/inactive)
+db.addUser('user1', 'pass123', ['list'], false, 'myapp', false); // false = inactive
+db.addUser('user2', 'pass123', ['list'], false, 'myapp', true);  // true = active (default)
+db.addUser('user3', 'pass123', ['list'], false, 'myapp');           // default: true
 ```
+
+### User Status Parameter
+The `addUser` method accepts an optional `status` parameter (boolean) to control user account activity:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `status` | `boolean` | `true` | When `false`, user account is inactive and cannot login |
+
+**Note:** Users with `status: false` will be unable to authenticate even with valid credentials. This is useful for:
+- Temporarily disabling accounts without deleting them
+- Pending approval workflows
+- Account suspension scenarios
 
 ---
 

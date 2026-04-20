@@ -466,7 +466,7 @@ class ZeroDB extends node_events_1.EventEmitter {
             return [];
         }
     }
-    addUser(username, password, permissions, isGrand = false, dbName) {
+    addUser(username, password, permissions, isGrand = false, dbName, status = true) {
         try {
             const targetDb = dbName || this.currentDb;
             if (!targetDb) {
@@ -490,8 +490,8 @@ class ZeroDB extends node_events_1.EventEmitter {
             else {
                 permBits = permission_manager_1.PermissionManager.fromObject(permissions);
             }
-            this.dbManager.addUser(targetDb, username, password, permBits, isGrand);
-            event_manager_1.EventManager.info(`User '${username}' added to database '${targetDb}'`, { permissions: permBits, isGrand: isGrand });
+            this.dbManager.addUser(targetDb, username, password, permBits, isGrand, status);
+            event_manager_1.EventManager.info(`User '${username}' added to database '${targetDb}'`, { permissions: permBits, isGrand: isGrand, status });
             return this;
         }
         catch (e) {
