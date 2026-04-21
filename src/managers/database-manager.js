@@ -52,6 +52,10 @@ class DatabaseManager {
             databases: new Map(),
             loaded: false
         };
+        this.sysAdminIndex = {
+            admin: null,
+            loaded: false
+        };
     }
     loadIndex() {
         if (this.dbIndex.loaded)
@@ -59,6 +63,7 @@ class DatabaseManager {
         const content = this.getRegistryContent();
         if (!content) {
             this.dbIndex.loaded = true;
+            this.sysAdminIndex.loaded = true;
             return;
         }
         const lines = content.split('\n');
@@ -71,7 +76,17 @@ class DatabaseManager {
             const trimmed = line.trim();
             if (!trimmed)
                 continue;
-            if (trimmed.endsWith(':db') && !trimmed.includes(':user:')) {
+            if (trimmed.startsWith(':systemAdmin:')) {
+                const parts = trimmed.split(':');
+                if (parts.length >= 6) {
+                    this.sysAdminIndex.admin = {
+                        username: parts[2],
+                        password: parts[4],
+                        permission: parseInt(parts[6], 10) || 255
+                    };
+                }
+            }
+            else if (trimmed.endsWith(':db') && !trimmed.includes(':user:')) {
                 if (currentDb) {
                     this.dbIndex.databases.set(currentDb, {
                         name: currentDb,
@@ -129,6 +144,7 @@ class DatabaseManager {
             });
         }
         this.dbIndex.loaded = true;
+        this.sysAdminIndex.loaded = true;
     }
     readRegistryRaw() {
         if (!fs.existsSync(this.registryPath)) {
@@ -159,6 +175,9 @@ class DatabaseManager {
     }
     saveRegistryFromIndex() {
         const lines = [];
+        if (this.sysAdminIndex.admin) {
+            lines.push(`:systemAdmin:${this.sysAdminIndex.admin.username}:pass:${this.sysAdminIndex.admin.password}:perm:${this.sysAdminIndex.admin.permission}`);
+        }
         for (const [dbName, dbInfo] of this.dbIndex.databases) {
             lines.push(`${dbName}:db`);
             if (dbInfo.tables.length > 0) {
@@ -167,7 +186,6 @@ class DatabaseManager {
             else {
                 lines.push(`${dbName}:tables:`);
             }
-            // Save isPublic and owner
             lines.push(`${dbName}:isPublic:${dbInfo.isPublic ? 1 : 0}`);
             lines.push(`${dbName}:owner:${dbInfo.owner.join(',')}`);
             for (const [, user] of dbInfo.users) {
@@ -318,6 +336,68 @@ class DatabaseManager {
         this.dbIndex.databases.set(newName, dbInfo);
         this.saveRegistryFromIndex();
         return true;
+    }
+    hasSystemAdmin() {
+        this.loadIndex();
+        return this.sysAdminIndex.admin !== null;
+    }
+    getSystemAdmin() {
+        this.loadIndex();
+        return this.sysAdminIndex.admin;
+    }
+    createSystemAdmin(username, password) {
+        this.loadIndex();
+        if (this.sysAdminIndex.admin !== null) {
+            return false;
+        }
+        this.sysAdminIndex.admin = {
+            username,
+            password,
+            permission: 255
+        };
+        this.saveRegistryFromIndex();
+        return true;
+    }
+    updateSystemAdmin(username, password) {
+        this.loadIndex();
+        if (!this.sysAdminIndex.admin) {
+            return false;
+        }
+        this.sysAdminIndex.admin.username = username;
+        this.sysAdminIndex.admin.password = password;
+        this.saveRegistryFromIndex();
+        return true;
+    }
+    deleteSystemAdmin() {
+        this.loadIndex();
+        if (!this.sysAdminIndex.admin) {
+            return false;
+        }
+        this.sysAdminIndex.admin = null;
+        this.saveRegistryFromIndex();
+        return true;
+    }
+    authenticateSystemAdmin(username, password) {
+        this.loadIndex();
+        if (this.sysAdminIndex.admin) {
+            if (this.sysAdminIndex.admin.username === username &&
+                this.sysAdminIndex.admin.password === password) {
+                return this.sysAdminIndex.admin;
+            }
+        }
+        return null;
+    }
+    listAllDatabases() {
+        this.loadIndex();
+        return Array.from(this.dbIndex.databases.values());
+    }
+    listAllUsers() {
+        this.loadIndex();
+        const result = new Map();
+        for (const [dbName, dbInfo] of this.dbIndex.databases) {
+            result.set(dbName, Array.from(dbInfo.users.keys()));
+        }
+        return result;
     }
 }
 exports.DatabaseManager = DatabaseManager;

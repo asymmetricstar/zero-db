@@ -7,17 +7,27 @@
 import { DatabaseInfo } from '../managers/database-manager';
 import { BackupManager } from '../managers/backup-manager';
 import { QueryBuilder } from '../query/query-builder';
-import { PermissionType, CreateFieldDefinition } from '../types';
+import { PermissionType, CreateFieldDefinition, SystemAdminCredentials } from '../types';
 import { ConnectionPool } from '../managers/connection-pool';
 import { ZeroDBResult } from '../utils/validator';
 import { EventEmitter } from 'node:events';
 import { ScaleConfig } from '../engine/auto-scaler';
+declare class SystemAdminAPI {
+    private zdb;
+    constructor(zdb: ZeroDB);
+    login(username: string, password: string): boolean;
+    logout(): void;
+    get active(): boolean;
+    get has(): boolean;
+    get info(): SystemAdminCredentials | null;
+    update(username: string, password: string): boolean;
+    createAdmin(username: string, password: string): boolean;
+}
 interface ZeroDBOptions {
-    db?: string;
+    database?: string;
     auth?: {
         user?: string;
         pass?: string;
-        database?: string;
     };
     overwrite?: boolean;
     scaler?: Partial<ScaleConfig>;
@@ -33,11 +43,13 @@ export declare class ZeroDB extends EventEmitter {
     private cache;
     private connectionPool;
     private currentUser;
+    private currentSystemAdmin;
     private currentDb;
     private storedCredentials;
     private isNetwork;
     private requestedDb;
     constructor(rootPath?: string, cacheMB?: number, options?: ZeroDBOptions);
+    get systemadmin(): SystemAdminAPI;
     get safe(): {
         createDatabase: (dbName: string, options?: any) => ZeroDBResult<boolean>;
         dropDatabase: (dbName: string) => ZeroDBResult<boolean>;
@@ -82,6 +94,19 @@ export declare class ZeroDB extends EventEmitter {
     exit(): void;
     backup(fileName: string): Promise<string>;
     restore(fileName: string): Promise<void>;
+    _hasSystemAdmin(): boolean;
+    _getSystemAdmin(): SystemAdminCredentials | null;
+    createSystemAdmin(username: string, password: string): boolean;
+    _loginSystemAdmin(username: string, password: string): boolean;
+    _logoutSystemAdmin(): void;
+    _isSystemAdmin(): boolean;
+    _updateSystemAdminPassword(newUsername: string, newPassword: string): boolean;
+    hasSystemAdmin(): boolean;
+    getSystemAdmin(): SystemAdminCredentials | null;
+    loginSystemAdmin(username: string, password: string): boolean;
+    logoutSystemAdmin(): void;
+    isSystemAdmin(): boolean;
+    updateSystemAdminPassword(newUsername: string, newPassword: string): boolean;
 }
 export {};
 //# sourceMappingURL=zero-db.d.ts.map

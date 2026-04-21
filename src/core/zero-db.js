@@ -57,10 +57,37 @@ const path_utils_1 = require("../utils/path-utils");
 const event_manager_1 = require("../utils/event-manager");
 const node_events_1 = require("node:events");
 const auto_scaler_1 = require("../engine/auto-scaler");
+class SystemAdminAPI {
+    constructor(zdb) {
+        this.zdb = zdb;
+    }
+    login(username, password) {
+        return this.zdb._loginSystemAdmin(username, password);
+    }
+    logout() {
+        return this.zdb._logoutSystemAdmin();
+    }
+    get active() {
+        return this.zdb._isSystemAdmin();
+    }
+    get has() {
+        return this.zdb._hasSystemAdmin();
+    }
+    get info() {
+        return this.zdb._getSystemAdmin();
+    }
+    update(username, password) {
+        return this.zdb._updateSystemAdminPassword(username, password);
+    }
+    createAdmin(username, password) {
+        return this.zdb.createSystemAdmin(username, password);
+    }
+}
 class ZeroDB extends node_events_1.EventEmitter {
     constructor(rootPath = './databases', cacheMB = 128, options = {}) {
         super();
         this.currentUser = null;
+        this.currentSystemAdmin = null;
         this.currentDb = '';
         this.storedCredentials = null;
         this.isNetwork = false;
@@ -71,7 +98,7 @@ class ZeroDB extends node_events_1.EventEmitter {
             event_manager_1.EventManager.info('Existing database overwritten');
         }
         this.isNetwork = (0, path_utils_1.isNetworkPath)(this.rootPath);
-        this.requestedDb = options.db || ''; // Keep requestedDb as a fallback
+        this.requestedDb = options.database || '';
         this.cache = this.isNetwork ? new cache_manager_1.CacheManager(0) : new cache_manager_1.CacheManager(cacheMB);
         this.dbManager = new database_manager_1.DatabaseManager(this.rootPath, this.cache);
         this.tableManager = new table_manager_1.TableManager(this.rootPath, this.cache);
@@ -84,20 +111,28 @@ class ZeroDB extends node_events_1.EventEmitter {
             event_manager_1.EventManager.info('AutoScaler configuration updated', { scaler: options.scaler });
         }
         event_manager_1.EventManager.info('ZeroDB instance initialized', { rootPath, cacheMB, isNetwork: this.isNetwork });
-        // Check for auth credentials and attempt auto-login using options.auth.database
+        if (options.database) {
+            const dbInfo = this.dbManager.getDatabaseInfo(options.database);
+            if (dbInfo && dbInfo.isPublic) {
+                this.useDatabase(options.database);
+                event_manager_1.EventManager.info(`Auto-connected to public database '${options.database}'`);
+            }
+        }
         if (options.auth?.user && options.auth?.pass) {
             this.storedCredentials = { username: options.auth.user, password: options.auth.pass };
-            // Prioritize options.auth.database for auto-login
-            if (options.auth.database && options.auth.database !== "*") {
+            if (options.database) {
                 try {
-                    this.login(options.auth.database, options.auth.user, options.auth.pass);
-                    event_manager_1.EventManager.info(`Auto-logged in to database '${options.auth.database}'`);
+                    this.login(options.database, options.auth.user, options.auth.pass);
+                    event_manager_1.EventManager.info(`Auto-logged in to database '${options.database}'`);
                 }
                 catch (e) {
-                    event_manager_1.EventManager.warn(`Failed to auto-login to database '${options.auth.database}'`, { error: e.message });
+                    event_manager_1.EventManager.warn(`Failed to auto-login to database '${options.database}'`, { error: e.message });
                 }
             }
         }
+    }
+    get systemadmin() {
+        return new SystemAdminAPI(this);
     }
     get safe() {
         const z = this;
@@ -696,6 +731,78 @@ class ZeroDB extends node_events_1.EventEmitter {
     async restore(fileName) {
         return await this.backupManager.restoreFullBackup(fileName);
     }
+    _hasSystemAdmin() {
+        return this.dbManager.hasSystemAdmin();
+    }
+    _getSystemAdmin() {
+        return this.dbManager.getSystemAdmin();
+    }
+    createSystemAdmin(username, password) {
+        if (this.currentSystemAdmin) {
+            return this.dbManager.createSystemAdmin(username, password);
+        }
+        if (!this.currentUser) {
+            if (this.dbManager.hasSystemAdmin()) {
+                event_manager_1.EventManager.error('System admin already exists');
+                return false;
+            }
+            if (!this.dbManager.listDatabases().length) {
+                return this.dbManager.createSystemAdmin(username, password);
+            }
+            event_manager_1.EventManager.error('Permission denied: No system admin or grand user authenticated');
+            return false;
+        }
+        if (this.currentUser.isGrand) {
+            if (this.dbManager.hasSystemAdmin()) {
+                event_manager_1.EventManager.error('System admin already exists');
+                return false;
+            }
+            return this.dbManager.createSystemAdmin(username, password);
+        }
+        event_manager_1.EventManager.error('Permission denied: Only system admin or grand user can create system admin');
+        return false;
+    }
+    _loginSystemAdmin(username, password) {
+        const admin = this.dbManager.authenticateSystemAdmin(username, password);
+        if (admin) {
+            this.currentSystemAdmin = admin;
+            this.currentUser = {
+                username: admin.username,
+                password: admin.password,
+                permission: 127,
+                isGrand: true,
+                status: true
+            };
+            event_manager_1.EventManager.info(`System admin '${username}' logged in with grand privileges`);
+            return true;
+        }
+        event_manager_1.EventManager.error('Invalid system admin credentials');
+        return false;
+    }
+    _logoutSystemAdmin() {
+        const username = this.currentSystemAdmin?.username;
+        this.currentSystemAdmin = null;
+        if (this.currentUser?.isGrand && this.currentUser.username === username) {
+            this.currentUser = null;
+        }
+        event_manager_1.EventManager.info(`System admin '${username}' logged out`);
+    }
+    _isSystemAdmin() {
+        return this.currentSystemAdmin !== null;
+    }
+    _updateSystemAdminPassword(newUsername, newPassword) {
+        if (!this.currentSystemAdmin) {
+            event_manager_1.EventManager.error('Not authenticated as system admin');
+            return false;
+        }
+        return this.dbManager.updateSystemAdmin(newUsername, newPassword);
+    }
+    hasSystemAdmin() { return this._hasSystemAdmin(); }
+    getSystemAdmin() { return this._getSystemAdmin(); }
+    loginSystemAdmin(username, password) { return this._loginSystemAdmin(username, password); }
+    logoutSystemAdmin() { return this._logoutSystemAdmin(); }
+    isSystemAdmin() { return this._isSystemAdmin(); }
+    updateSystemAdminPassword(newUsername, newPassword) { return this._updateSystemAdminPassword(newUsername, newPassword); }
 }
 exports.ZeroDB = ZeroDB;
 //# sourceMappingURL=zero-db.js.map

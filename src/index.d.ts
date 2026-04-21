@@ -18,5 +18,5 @@ export { MD5 } from './utils/md5';
 export { UUID } from './utils/uuid';
 export { EventManager, LogLevel, LogEntry, EventManagerType } from './utils/event-manager';
 export { FileStreamReader } from './utils/file-stream';
-export { FieldType, FieldDefinition, CreateFieldDefinition, TableDefinition, UserCredentials, DatabaseCredentials, QueryCondition, SelectResult, PermissionType, PERMISSION_BITS, PERMISSION_NAMES } from './types';
+export { FieldType, FieldDefinition, CreateFieldDefinition, TableDefinition, UserCredentials, SystemAdminCredentials, DatabaseCredentials, QueryCondition, SelectResult, PermissionType, PERMISSION_BITS, PERMISSION_NAMES } from './types';
 //# sourceMappingURL=index.d.ts.map

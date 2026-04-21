@@ -5,7 +5,7 @@
  * @asymmetricstar - https://github.com/asymmetricstar
  */
 import { CacheManager } from '../utils/cache-manager';
-import { UserCredentials } from '../types';
+import { UserCredentials, SystemAdminCredentials } from '../types';
 export interface DatabaseInfo {
     name: string;
     tables: string[];
@@ -18,6 +18,7 @@ export declare class DatabaseManager {
     private registryPath;
     private cache;
     private dbIndex;
+    private sysAdminIndex;
     constructor(rootPath: string, cache: CacheManager);
     private loadIndex;
     private readRegistryRaw;
@@ -41,5 +42,13 @@ export declare class DatabaseManager {
     removeOwner(dbName: string, username: string): boolean;
     setPublic(dbName: string, isPublic: boolean): boolean;
     renameDatabase(oldDb: string, newName: string): boolean;
+    hasSystemAdmin(): boolean;
+    getSystemAdmin(): SystemAdminCredentials | null;
+    createSystemAdmin(username: string, password: string): boolean;
+    updateSystemAdmin(username: string, password: string): boolean;
+    deleteSystemAdmin(): boolean;
+    authenticateSystemAdmin(username: string, password: string): SystemAdminCredentials | null;
+    listAllDatabases(): DatabaseInfo[];
+    listAllUsers(): Map<string, string[]>;
 }
 //# sourceMappingURL=database-manager.d.ts.map

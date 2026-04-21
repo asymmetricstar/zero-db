@@ -36,6 +36,11 @@ export interface UserCredentials {
     isGrand?: boolean;
     status?: boolean;
 }
+export interface SystemAdminCredentials {
+    username: string;
+    password: string;
+    permission: number;
+}
 export interface DatabaseCredentials {
     dbName: string;
     tables: string[];
