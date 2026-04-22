@@ -35,6 +35,7 @@ export declare class DatabaseManager {
     dropDatabase(dbName: string): boolean;
     authenticate(dbName: string, username: string, password: string): UserCredentials | null;
     addUser(username: string, password: string, permission: number, isGrand?: boolean, status?: boolean): boolean;
+    updateUser(username: string, password?: string, permission?: number, isGrand?: boolean, status?: boolean): boolean;
     listUsers(dbName: string | null): string[];
     deleteUser(dbName: string | null, username: string): boolean;
     getDatabaseInfo(dbName: string): DatabaseInfo | null;

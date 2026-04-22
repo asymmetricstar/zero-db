@@ -62,22 +62,22 @@ class SystemAdminAPI {
         this.zdb = zdb;
     }
     login(username, password) {
-        return this.zdb._loginSystemAdmin(username, password);
+        return this.zdb.loginSystemAdmin(username, password);
     }
     logout() {
-        return this.zdb._logoutSystemAdmin();
+        return this.zdb.logoutSystemAdmin();
     }
     get active() {
-        return this.zdb._isSystemAdmin();
+        return this.zdb.isSystemAdmin();
     }
     get has() {
-        return this.zdb._hasSystemAdmin();
+        return this.zdb.hasSystemAdmin();
     }
     get info() {
-        return this.zdb._getSystemAdmin();
+        return this.zdb.getSystemAdmin();
     }
     update(username, password) {
-        return this.zdb._updateSystemAdminPassword(username, password);
+        return this.zdb.updateSystemAdminPassword(username, password);
     }
     createAdmin(username, password) {
         return this.zdb.createSystemAdmin(username, password);
@@ -521,12 +521,45 @@ class ZeroDB extends node_events_1.EventEmitter {
             else {
                 permBits = permission_manager_1.PermissionManager.fromObject(permissions);
             }
-            this.dbManager.addUser(username, password, permBits, isGrand, status);
+            if (!this.dbManager.addUser(username, password, permBits, isGrand, status)) {
+                event_manager_1.EventManager.error(`User '${username}' already exists`);
+                return null;
+            }
             event_manager_1.EventManager.info(`User '${username}' added globally`, { permissions: permBits, isGrand: isGrand, status });
             return this;
         }
         catch (e) {
             event_manager_1.EventManager.error(`Failed to add user '${username}'`, { error: e.message });
+            return null;
+        }
+    }
+    updateUser(username, password, permissions, isGrand, status) {
+        try {
+            if (!this.currentUser) {
+                event_manager_1.EventManager.error('Not authenticated');
+                return null;
+            }
+            let permBits;
+            if (permissions !== undefined) {
+                if (typeof permissions === 'number') {
+                    permBits = permissions;
+                }
+                else if (Array.isArray(permissions)) {
+                    permBits = permission_manager_1.PermissionManager.fromArray(permissions);
+                }
+                else {
+                    permBits = permission_manager_1.PermissionManager.fromObject(permissions);
+                }
+            }
+            if (!this.dbManager.updateUser(username, password, permBits, isGrand, status)) {
+                event_manager_1.EventManager.error(`Failed to update user '${username}'`);
+                return null;
+            }
+            event_manager_1.EventManager.info(`User '${username}' updated globally`);
+            return this;
+        }
+        catch (e) {
+            event_manager_1.EventManager.error(`Failed to update user '${username}'`, { error: e.message });
             return null;
         }
     }
@@ -733,38 +766,16 @@ class ZeroDB extends node_events_1.EventEmitter {
     async restore(fileName) {
         return await this.backupManager.restoreFullBackup(fileName);
     }
-    _hasSystemAdmin() {
+    hasSystemAdmin() {
         return this.dbManager.hasSystemAdmin();
     }
-    _getSystemAdmin() {
+    getSystemAdmin() {
         return this.dbManager.getSystemAdmin();
     }
     createSystemAdmin(username, password) {
-        if (this.currentSystemAdmin) {
-            return this.dbManager.createSystemAdmin(username, password);
-        }
-        if (!this.currentUser) {
-            if (this.dbManager.hasSystemAdmin()) {
-                event_manager_1.EventManager.error('System admin already exists');
-                return false;
-            }
-            if (!this.dbManager.listDatabases().length) {
-                return this.dbManager.createSystemAdmin(username, password);
-            }
-            event_manager_1.EventManager.error('Permission denied: No system admin or grand user authenticated');
-            return false;
-        }
-        if (this.currentUser.isGrand) {
-            if (this.dbManager.hasSystemAdmin()) {
-                event_manager_1.EventManager.error('System admin already exists');
-                return false;
-            }
-            return this.dbManager.createSystemAdmin(username, password);
-        }
-        event_manager_1.EventManager.error('Permission denied: Only system admin or grand user can create system admin');
-        return false;
+        return this.dbManager.createSystemAdmin(username, password);
     }
-    _loginSystemAdmin(username, password) {
+    loginSystemAdmin(username, password) {
         const admin = this.dbManager.authenticateSystemAdmin(username, password);
         if (admin) {
             this.currentSystemAdmin = admin;
@@ -781,7 +792,7 @@ class ZeroDB extends node_events_1.EventEmitter {
         event_manager_1.EventManager.error('Invalid system admin credentials');
         return false;
     }
-    _logoutSystemAdmin() {
+    logoutSystemAdmin() {
         const username = this.currentSystemAdmin?.username;
         this.currentSystemAdmin = null;
         if (this.currentUser?.isGrand && this.currentUser.username === username) {
@@ -789,22 +800,16 @@ class ZeroDB extends node_events_1.EventEmitter {
         }
         event_manager_1.EventManager.info(`System admin '${username}' logged out`);
     }
-    _isSystemAdmin() {
+    isSystemAdmin() {
         return this.currentSystemAdmin !== null;
     }
-    _updateSystemAdminPassword(newUsername, newPassword) {
+    updateSystemAdminPassword(newUsername, newPassword) {
         if (!this.currentSystemAdmin) {
             event_manager_1.EventManager.error('Not authenticated as system admin');
             return false;
         }
         return this.dbManager.updateSystemAdmin(newUsername, newPassword);
     }
-    hasSystemAdmin() { return this._hasSystemAdmin(); }
-    getSystemAdmin() { return this._getSystemAdmin(); }
-    loginSystemAdmin(username, password) { return this._loginSystemAdmin(username, password); }
-    logoutSystemAdmin() { return this._logoutSystemAdmin(); }
-    isSystemAdmin() { return this._isSystemAdmin(); }
-    updateSystemAdminPassword(newUsername, newPassword) { return this._updateSystemAdminPassword(newUsername, newPassword); }
 }
 exports.ZeroDB = ZeroDB;
 //# sourceMappingURL=zero-db.js.map

@@ -35,6 +35,20 @@ db.addUser('editor', 'pass', 13, false);
 | 63 | All except Rename | Advanced user |
 | 127 | All permissions | Full admin |
 
+## Updating Users
+
+You can update existing user credentials, permissions, or status using `updateUser`.
+
+```typescript
+// Update user password and permissions
+db.updateUser('editor', 'new_secure_password', ['list', 'update']);
+
+// Disable a user (set status to false)
+db.updateUser('viewer', undefined, undefined, undefined, false);
+```
+
+> **Warning:** Always use `undefined` to skip updating a field. Passing `null` will overwrite existing values with `null`, which may cause authentication or permission issues.
+
 ## How to Use
 
 ### Array Format (Recommended)

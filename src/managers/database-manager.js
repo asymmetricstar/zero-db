@@ -196,7 +196,7 @@ class DatabaseManager {
             lines.push(`:systemAdmin:${this.sysAdminIndex.admin.username}:pass:${this.sysAdminIndex.admin.password}:perm:${this.sysAdminIndex.admin.permission}`);
         }
         for (const [, user] of this.globalUsers) {
-            lines.push(`:globalUser:${user.username}:pass:${user.password}:perm:${user.permission}:grand:${user.isGrand ? 1 : 0}:status:${user.status !== false ? 1 : 0}`);
+            lines.push(`:globalUser:${user.username}:pass:${user.password}:perm:${user.permission}:grand:${user.isGrand ? 1 : 0}:status:${user.status ? 1 : 0}`);
         }
         for (const [dbName, dbInfo] of this.dbIndex.databases) {
             lines.push(`${dbName}:db`);
@@ -209,7 +209,7 @@ class DatabaseManager {
             lines.push(`${dbName}:isPublic:${dbInfo.isPublic ? 1 : 0}`);
             lines.push(`${dbName}:owner:${dbInfo.owner.join(',')}`);
             for (const [, user] of dbInfo.users) {
-                lines.push(`${dbName}:user:${user.username}:pass:${user.password}:perm:${user.permission}:grand:${user.isGrand ? 1 : 0}:status:${user.status !== false ? 1 : 0}`);
+                lines.push(`${dbName}:user:${user.username}:pass:${user.password}:perm:${user.permission}:grand:${user.isGrand ? 1 : 0}:status:${user.status ? 1 : 0}`);
             }
         }
         const content = lines.join('\n');
@@ -297,7 +297,24 @@ class DatabaseManager {
     }
     addUser(username, password, permission, isGrand = false, status = true) {
         this.loadIndex();
+        if (this.globalUsers.has(username))
+            return false;
         this.globalUsers.set(username, { username, password, permission, isGrand, status });
+        this.saveRegistryFromIndex();
+        return true;
+    }
+    updateUser(username, password, permission, isGrand, status) {
+        this.loadIndex();
+        const user = this.globalUsers.get(username);
+        if (!user)
+            return false;
+        this.globalUsers.set(username, {
+            username,
+            password: password !== undefined ? password : user.password,
+            permission: permission !== undefined ? permission : user.permission,
+            isGrand: isGrand !== undefined ? isGrand : user.isGrand,
+            status: status !== undefined ? status : user.status
+        });
         this.saveRegistryFromIndex();
         return true;
     }

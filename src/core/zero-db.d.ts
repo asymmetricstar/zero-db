@@ -83,6 +83,7 @@ export declare class ZeroDB extends EventEmitter {
     setPublic(dbName: string, isPublic: boolean): Promise<boolean>;
     listUsers(dbName?: string | null): string[];
     addUser(username: string, password: string, permissions: Partial<Record<PermissionType, boolean>> | PermissionType[] | number, isGrand?: boolean, status?: boolean): ZeroDB | null;
+    updateUser(username: string, password?: string, permissions?: Partial<Record<PermissionType, boolean>> | PermissionType[] | number, isGrand?: boolean, status?: boolean): ZeroDB | null;
     deleteUser(username: string, dbName?: string): ZeroDB | null;
     renameDatabase(newName: string): ZeroDB | null;
     renameTable(oldName: string, newName: string): ZeroDB | null;
@@ -94,19 +95,13 @@ export declare class ZeroDB extends EventEmitter {
     exit(): void;
     backup(fileName: string): Promise<string>;
     restore(fileName: string): Promise<void>;
-    _hasSystemAdmin(): boolean;
-    _getSystemAdmin(): SystemAdminCredentials | null;
-    createSystemAdmin(username: string, password: string): boolean;
-    _loginSystemAdmin(username: string, password: string): boolean;
-    _logoutSystemAdmin(): void;
-    _isSystemAdmin(): boolean;
-    _updateSystemAdminPassword(newUsername: string, newPassword: string): boolean;
-    hasSystemAdmin(): boolean;
-    getSystemAdmin(): SystemAdminCredentials | null;
-    loginSystemAdmin(username: string, password: string): boolean;
-    logoutSystemAdmin(): void;
-    isSystemAdmin(): boolean;
-    updateSystemAdminPassword(newUsername: string, newPassword: string): boolean;
+    private hasSystemAdmin;
+    private getSystemAdmin;
+    private createSystemAdmin;
+    private loginSystemAdmin;
+    private logoutSystemAdmin;
+    private isSystemAdmin;
+    private updateSystemAdminPassword;
 }
 export {};
 //# sourceMappingURL=zero-db.d.ts.map
