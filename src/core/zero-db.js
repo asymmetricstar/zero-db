@@ -485,31 +485,28 @@ class ZeroDB extends node_events_1.EventEmitter {
     }
     listUsers(dbName) {
         try {
-            const targetDb = dbName || this.currentDb;
-            if (!targetDb) {
-                event_manager_1.EventManager.error('No database selected');
-                return [];
-            }
+            const targetDb = dbName || null;
             if (!this.currentUser || !this.currentUser.isGrand) {
                 event_manager_1.EventManager.error('Permission denied: Only grand users can list users');
                 return [];
             }
-            return this.dbManager.listUsers(targetDb);
+            if (targetDb) {
+                return this.dbManager.listUsers(targetDb);
+            }
+            else {
+                return this.dbManager.listUsers(null);
+            }
         }
         catch (e) {
             event_manager_1.EventManager.error(`Failed to list users`, { error: e.message, dbName: dbName || this.currentDb });
             return [];
         }
     }
-    addUser(username, password, permissions, isGrand = false, dbName, status = true) {
+    addUser(username, password, permissions, isGrand = false, status = true) {
         try {
-            const targetDb = dbName || this.currentDb;
-            if (!targetDb) {
-                return this;
-            }
             if (!this.currentUser) {
-                const dbInfo = this.dbManager.getDatabaseInfo(targetDb);
-                if (dbInfo && dbInfo.users.size > 0) {
+                const allUsers = this.dbManager.listUsers(null);
+                if (allUsers.length > 0 && !this.dbManager.hasSystemAdmin()) {
                     event_manager_1.EventManager.error('Not authenticated');
                     return null;
                 }
@@ -524,22 +521,18 @@ class ZeroDB extends node_events_1.EventEmitter {
             else {
                 permBits = permission_manager_1.PermissionManager.fromObject(permissions);
             }
-            this.dbManager.addUser(targetDb, username, password, permBits, isGrand, status);
-            event_manager_1.EventManager.info(`User '${username}' added to database '${targetDb}'`, { permissions: permBits, isGrand: isGrand, status });
+            this.dbManager.addUser(username, password, permBits, isGrand, status);
+            event_manager_1.EventManager.info(`User '${username}' added globally`, { permissions: permBits, isGrand: isGrand, status });
             return this;
         }
         catch (e) {
-            event_manager_1.EventManager.error(`Failed to add user '${username}'`, { error: e.message, dbName: dbName || this.currentDb });
+            event_manager_1.EventManager.error(`Failed to add user '${username}'`, { error: e.message });
             return null;
         }
     }
     deleteUser(username, dbName) {
         try {
-            const targetDb = dbName || this.currentDb;
-            if (!targetDb) {
-                event_manager_1.EventManager.error('No database selected');
-                return null;
-            }
+            const targetDb = dbName || null;
             if (!this.currentUser) {
                 event_manager_1.EventManager.error('Not authenticated');
                 return null;
@@ -552,16 +545,26 @@ class ZeroDB extends node_events_1.EventEmitter {
             }
             const success = this.dbManager.deleteUser(targetDb, username);
             if (success) {
-                event_manager_1.EventManager.info(`User '${username}' deleted from database '${targetDb}'`);
+                if (targetDb) {
+                    event_manager_1.EventManager.info(`User '${username}' deleted from database '${targetDb}'`);
+                }
+                else {
+                    event_manager_1.EventManager.info(`User '${username}' deleted globally`);
+                }
                 // If we deleted the current user, log them out
-                if (this.currentUser && this.currentUser.username === username && targetDb === this.currentDb) {
+                if (this.currentUser && this.currentUser.username === username && (!targetDb || targetDb === this.currentDb)) {
                     this.logout();
                     event_manager_1.EventManager.info(`Current user '${username}' logged out after deletion`);
                 }
                 return this;
             }
             else {
-                event_manager_1.EventManager.error(`User '${username}' not found in database '${targetDb}'`, { dbName: targetDb });
+                if (targetDb) {
+                    event_manager_1.EventManager.error(`User '${username}' not found in database '${targetDb}'`, { dbName: targetDb });
+                }
+                else {
+                    event_manager_1.EventManager.error(`User '${username}' not found globally`);
+                }
                 return null;
             }
         }

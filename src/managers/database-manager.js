@@ -52,6 +52,7 @@ class DatabaseManager {
             databases: new Map(),
             loaded: false
         };
+        this.globalUsers = new Map();
         this.sysAdminIndex = {
             admin: null,
             loaded: false
@@ -84,6 +85,20 @@ class DatabaseManager {
                         password: parts[4],
                         permission: parseInt(parts[6], 10) || 255
                     };
+                }
+            }
+            else if (trimmed.startsWith(':globalUser:')) {
+                const parts = trimmed.split(':');
+                if (parts.length >= 8) {
+                    const username = parts[2];
+                    const password = parts[4];
+                    const permIndex = parts.indexOf('perm');
+                    const permission = permIndex !== -1 ? parseInt(parts[permIndex + 1], 10) : 0;
+                    const isGrandIndex = parts.indexOf('grand');
+                    const isGrand = isGrandIndex !== -1 ? parseInt(parts[isGrandIndex + 1], 10) === 1 : false;
+                    const statusIndex = parts.indexOf('status');
+                    const status = statusIndex !== -1 ? parseInt(parts[statusIndex + 1], 10) === 1 : true;
+                    this.globalUsers.set(username, { username, password, permission, isGrand, status });
                 }
             }
             else if (trimmed.endsWith(':db') && !trimmed.includes(':user:')) {
@@ -122,7 +137,9 @@ class DatabaseManager {
                     const permission = permIndex !== -1 ? parseInt(parts[permIndex + 1], 10) : 0;
                     const isGrandIndex = parts.indexOf('grand');
                     const isGrand = isGrandIndex !== -1 ? parseInt(parts[isGrandIndex + 1], 10) === 1 : false;
-                    currentUsers.set(username, { username, password, permission, isGrand });
+                    const statusIndex = parts.indexOf('status');
+                    const status = statusIndex !== -1 ? parseInt(parts[statusIndex + 1], 10) === 1 : true;
+                    currentUsers.set(username, { username, password, permission, isGrand, status });
                 }
             }
             else if (trimmed.startsWith(currentDb + ':isPublic:') && currentDb) {
@@ -178,6 +195,9 @@ class DatabaseManager {
         if (this.sysAdminIndex.admin) {
             lines.push(`:systemAdmin:${this.sysAdminIndex.admin.username}:pass:${this.sysAdminIndex.admin.password}:perm:${this.sysAdminIndex.admin.permission}`);
         }
+        for (const [, user] of this.globalUsers) {
+            lines.push(`:globalUser:${user.username}:pass:${user.password}:perm:${user.permission}:grand:${user.isGrand ? 1 : 0}:status:${user.status !== false ? 1 : 0}`);
+        }
         for (const [dbName, dbInfo] of this.dbIndex.databases) {
             lines.push(`${dbName}:db`);
             if (dbInfo.tables.length > 0) {
@@ -189,7 +209,7 @@ class DatabaseManager {
             lines.push(`${dbName}:isPublic:${dbInfo.isPublic ? 1 : 0}`);
             lines.push(`${dbName}:owner:${dbInfo.owner.join(',')}`);
             for (const [, user] of dbInfo.users) {
-                lines.push(`${dbName}:user:${user.username}:pass:${user.password}:perm:${user.permission}:grand:${user.isGrand ? 1 : 0}`);
+                lines.push(`${dbName}:user:${user.username}:pass:${user.password}:perm:${user.permission}:grand:${user.isGrand ? 1 : 0}:status:${user.status !== false ? 1 : 0}`);
             }
         }
         const content = lines.join('\n');
@@ -199,6 +219,7 @@ class DatabaseManager {
     invalidate() {
         this.dbIndex.loaded = false;
         this.dbIndex.databases.clear();
+        this.globalUsers.clear();
     }
     databaseExists(dbName) {
         this.loadIndex();
@@ -256,23 +277,35 @@ class DatabaseManager {
         const db = this.dbIndex.databases.get(dbName);
         if (!db)
             return null;
+        // Check database specific users first
         const user = db.users.get(username);
         if (user && user.password === password) {
             return user;
         }
+        // Check global users
+        const globalUser = this.globalUsers.get(username);
+        if (globalUser && globalUser.password === password) {
+            // If it's a grand user, they have access to everything
+            if (globalUser.isGrand)
+                return globalUser;
+            // If the user is an owner, they have access
+            if (db.owner.includes(username))
+                return globalUser;
+            return null; // Non-grand global user must be an owner to access a specific database
+        }
         return null;
     }
-    addUser(dbName, username, password, permission, isGrand = false, status = true) {
+    addUser(username, password, permission, isGrand = false, status = true) {
         this.loadIndex();
-        const db = this.dbIndex.databases.get(dbName);
-        if (!db)
-            return false;
-        db.users.set(username, { username, password, permission, isGrand, status });
+        this.globalUsers.set(username, { username, password, permission, isGrand, status });
         this.saveRegistryFromIndex();
         return true;
     }
     listUsers(dbName) {
         this.loadIndex();
+        if (!dbName) {
+            return Array.from(this.globalUsers.keys());
+        }
         const db = this.dbIndex.databases.get(dbName);
         if (!db)
             return [];
@@ -280,6 +313,13 @@ class DatabaseManager {
     }
     deleteUser(dbName, username) {
         this.loadIndex();
+        if (!dbName) {
+            const success = this.globalUsers.delete(username);
+            if (success) {
+                this.saveRegistryFromIndex();
+            }
+            return success;
+        }
         const db = this.dbIndex.databases.get(dbName);
         if (!db)
             return false;
@@ -302,10 +342,23 @@ class DatabaseManager {
         const db = this.dbIndex.databases.get(dbName);
         if (!db)
             return false;
+        // Sahip olarak ekle
         if (!db.owner.includes(username)) {
             db.owner.push(username);
-            this.saveRegistryFromIndex();
         }
+        // Kullanıcı listesinde yoksa ekle
+        if (!db.users.has(username)) {
+            // Global'deki kullanıcı bilgilerini al (eğer varsa)
+            const globalUser = this.globalUsers.get(username);
+            if (globalUser) {
+                db.users.set(username, { ...globalUser });
+            }
+            else {
+                // Global'de yoksa varsayılan bilgilerle ekle
+                db.users.set(username, { username, password: '', permission: 31, isGrand: false, status: true });
+            }
+        }
+        this.saveRegistryFromIndex();
         return true;
     }
     removeOwner(dbName, username) {
@@ -394,6 +447,7 @@ class DatabaseManager {
     listAllUsers() {
         this.loadIndex();
         const result = new Map();
+        result.set(null, Array.from(this.globalUsers.keys()));
         for (const [dbName, dbInfo] of this.dbIndex.databases) {
             result.set(dbName, Array.from(dbInfo.users.keys()));
         }

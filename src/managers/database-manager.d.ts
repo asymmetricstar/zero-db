@@ -18,6 +18,7 @@ export declare class DatabaseManager {
     private registryPath;
     private cache;
     private dbIndex;
+    private globalUsers;
     private sysAdminIndex;
     constructor(rootPath: string, cache: CacheManager);
     private loadIndex;
@@ -33,9 +34,9 @@ export declare class DatabaseManager {
     }): boolean;
     dropDatabase(dbName: string): boolean;
     authenticate(dbName: string, username: string, password: string): UserCredentials | null;
-    addUser(dbName: string, username: string, password: string, permission: number, isGrand?: boolean, status?: boolean): boolean;
-    listUsers(dbName: string): string[];
-    deleteUser(dbName: string, username: string): boolean;
+    addUser(username: string, password: string, permission: number, isGrand?: boolean, status?: boolean): boolean;
+    listUsers(dbName: string | null): string[];
+    deleteUser(dbName: string | null, username: string): boolean;
     getDatabaseInfo(dbName: string): DatabaseInfo | null;
     listDatabases(): string[];
     addOwner(dbName: string, username: string): boolean;
@@ -49,6 +50,6 @@ export declare class DatabaseManager {
     deleteSystemAdmin(): boolean;
     authenticateSystemAdmin(username: string, password: string): SystemAdminCredentials | null;
     listAllDatabases(): DatabaseInfo[];
-    listAllUsers(): Map<string, string[]>;
+    listAllUsers(): Map<string | null, string[]>;
 }
 //# sourceMappingURL=database-manager.d.ts.map
