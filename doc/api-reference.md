@@ -28,9 +28,11 @@ Complete method reference for ZeroDB engine.
 
 | Method | Description | Returns |
 |--------|-------------|---------|
-| `addUser(user, pass, perms, isGrand, db)` | Add user | `ZeroDB` |
-| `deleteUser(user, db)` | Delete user | `ZeroDB` |
+| `addUser(user, pass, perms, isGrand, db?)` | Add user (db optional) | `ZeroDB` |
+| `deleteUser(user, db?)` | Delete user | `ZeroDB` |
 | `listUsers(db?)` | List users | `string[]` |
+| `addOwner(db, user)` | Assign user to database | `Promise<boolean>` |
+| `removeOwner(db, user)` | Remove user from database | `Promise<boolean>` |
 
 ### Table Operations
 

@@ -1,12 +1,12 @@
 # ⚡ ZeroDB Engine
 
-> **Next-Gen File-Based Database** -  A simple, secure, zero-dependency, and high-performance database engine for Node.js. Perfect for local storage, IoT, and embedded applications.
+> **Next-Gen File-Based Database** - A simple, secure, zero-dependency, and high-performance database engine for Node.js.
 
 ---
 
 ## 🚀 Architecture
 
-ZeroDB combines the power of SQL databases with the simplicity of file-based systems. It is designed for maximum efficiency with its own unique architecture and zero external dependencies.
+ZeroDB combines the power of SQL databases with the simplicity of file-based systems.
 
 - **Cluster & Distributed Operations:** Data works simultaneously across multiple servers
 - **File Locking Mechanism:** Advisory Locking at OS level
@@ -36,8 +36,9 @@ const db = new ZeroDB('./data');
 // 1. Create database
 db.createDatabase('blog');
 
-// 2. Create user with full permissions
-db.addUser('admin', 'pass123', 127, true, 'blog');
+// 2. Create user and assign as owner
+db.addUser('admin', 'pass123', 127, true);
+db.addOwner('blog', 'admin');
 
 // 3. Login
 db.login('blog', 'admin', 'pass123');
@@ -64,7 +65,6 @@ db.exit();
 ### Getting Started
 | Guide | Description |
 |-------|-------------|
-| [Quick Start](doc/quickstart.md) | Step-by-step guide |
 | [Configuration](doc/configuration.md) | All options |
 
 ### Core Features

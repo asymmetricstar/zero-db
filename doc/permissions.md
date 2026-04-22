@@ -8,7 +8,7 @@ Each permission has a numeric value. Add them together:
 
 ```typescript
 // Example: Add(1) + List(4) + Update(8) = 13
-db.addUser('editor', 'pass', 13, false, 'blog');
+db.addUser('editor', 'pass', 13, false);
 ```
 
 | Name | Value | Description |
@@ -41,71 +41,116 @@ db.addUser('editor', 'pass', 13, false, 'blog');
 
 ```typescript
 // Clear and readable
-db.addUser('editor', 'pass', ['add', 'list', 'update'], false, 'blog');
+db.addUser('editor', 'pass', ['add', 'list', 'update'], false);
 
 // Multiple permissions
-db.addUser('moderator', 'pass', ['add', 'delete', 'list', 'update'], false, 'blog');
+db.addUser('moderator', 'pass', ['add', 'delete', 'list', 'update'], false);
 ```
 
 ### Object Format
 
 ```typescript
 // Explicit true/false
-db.addUser('viewer', 'pass', { list: true }, false, 'blog');
+db.addUser('viewer', 'pass', { list: true }, false);
 
 // Mixed
-db.addUser('limited', 'pass', { list: true, add: true }, false, 'blog');
+db.addUser('limited', 'pass', { list: true, add: true }, false);
 ```
 
 ### Numeric Format
 
 ```typescript
 // Direct value
-db.addUser('editor', 'pass', 13, false, 'blog');
+db.addUser('editor', 'pass', 13, false);
 
 // Common values
-db.addUser('admin', 'pass', 127, true, 'blog');      // Full
-db.addUser('user', 'pass', 31, false, 'blog');        // Without rename
-db.addUser('viewer', 'pass', 4, false, 'blog');      // Read only
+db.addUser('admin', 'pass', 127, true);      // Full
+db.addUser('user', 'pass', 31, false);        // Without rename
+db.addUser('viewer', 'pass', 4, false);      // Read only
 ```
 
 ## Grand Admin (isGrand)
 
-When `isGrand = true`, user has **full access** to the database:
+When `isGrand = true`, user has **full access** to all assigned databases:
 
 ```typescript
-db.addUser('superadmin', 'pass', 127, true, 'blog');
+db.addUser('superadmin', 'pass', 127, true);
 ```
 
 Grand admin can:
-- Perform all operations
+- Perform all operations on assigned databases
 - Add/remove users
 - Create/drop tables
 - Bypass permission checks
+
+## Database Assignment
+
+The `dbName` parameter is **optional**. Users can be assigned to databases in two ways:
+
+### 1. Assign when creating database (owner)
+
+```typescript
+// Create database and assign owner
+db.createDatabase('blog', { owner: ['admin', 'editor'] });
+```
+
+### 2. Assign later using addOwner
+
+```typescript
+// Add user first (without database)
+db.addUser('john', 'pass123', 127, true);
+
+// Then assign to database
+db.addOwner('blog', 'john');
+```
+
+### Optional dbName Parameter
+
+```typescript
+// With explicit database
+db.addUser('editor', 'pass', 13, false, 'blog');
+
+// Without database (user created, assign later)
+db.addUser('editor', 'pass', 13, false);
+
+// Same as above
+db.addUser('editor', 'pass', 13, false, undefined);
+```
 
 ## Examples
 
 ### Read-Only User
 
 ```typescript
-db.addUser('reader', 'pass', ['list'], false, 'blog');
+db.addUser('reader', 'pass', ['list'], false);
 ```
 
 ### Content Editor
 
 ```typescript
-db.addUser('editor', 'pass', ['add', 'delete', 'list', 'update'], false, 'blog');
+db.addUser('editor', 'pass', ['add', 'delete', 'list', 'update'], false);
 ```
 
 ### Full Admin
 
 ```typescript
-db.addUser('admin', 'pass', 127, true, 'blog');
+db.addUser('admin', 'pass', 127, true);
 ```
 
 ### Custom Combination
 
 ```typescript
 // Can add and list, but NOT delete or update
-db.addUser('contributor', 'pass', ['add', 'list'], false, 'blog');
+db.addUser('contributor', 'pass', ['add', 'list'], false);
+```
+
+### With Database Assignment
+
+```typescript
+// Step 1: Create user without database
+db.addUser('newuser', 'pass', 127, true);
+
+// Step 2: Assign to database
+db.createDatabase('blog');
+db.addOwner('blog', 'newuser');
 ```

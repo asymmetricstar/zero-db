@@ -52,7 +52,8 @@ For single database applications, use normal users instead:
 ```typescript
 // Simpler for single DB
 db.createDatabase('blog');
-db.addUser('admin', 'pass', 127, true, 'blog');
+db.addUser('admin', 'pass', 127, true);
+db.addOwner('blog', 'admin');
 db.login('blog', 'admin', 'pass');
 ```
 

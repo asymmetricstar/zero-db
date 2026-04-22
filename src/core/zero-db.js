@@ -505,8 +505,7 @@ class ZeroDB extends node_events_1.EventEmitter {
         try {
             const targetDb = dbName || this.currentDb;
             if (!targetDb) {
-                event_manager_1.EventManager.error('No database selected');
-                return null;
+                return this;
             }
             if (!this.currentUser) {
                 const dbInfo = this.dbManager.getDatabaseInfo(targetDb);
