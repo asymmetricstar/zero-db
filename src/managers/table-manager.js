@@ -298,7 +298,12 @@ class TableManager {
         if (!fs.existsSync(tableDir)) {
             return false;
         }
-        fs.rmSync(tableDir, { recursive: true, force: true });
+        try {
+            fs.rmSync(tableDir, { recursive: true, force: true });
+        }
+        catch (e) {
+            return false;
+        }
         const schemaContent = this.getSchemaContent();
         const schemaLines = schemaContent.split('\n');
         const newSchemaLines = [];
@@ -324,13 +329,17 @@ class TableManager {
                 newSchemaLines.push(line);
             }
         }
-        this.writeBinaryFile(this.schemaPath, newSchemaLines.join('\n'));
+        if (newSchemaLines.length > 0) {
+            this.writeBinaryFile(this.schemaPath, newSchemaLines.join('\n'));
+        }
         const manifestContent = this.getManifestContent();
         const newManifestLines = manifestContent.split('\n').filter(line => {
             const parts = line.split(':');
             return !(parts.length >= 2 && parts[0] === dbName && parts[1] === tableName);
         });
-        this.writeBinaryFile(this.manifestPath, newManifestLines.join('\n'));
+        if (newManifestLines.length > 0) {
+            this.writeBinaryFile(this.manifestPath, newManifestLines.join('\n'));
+        }
         this.invalidateSchema();
         this.invalidateManifest();
         const key = `${dbName}:${tableName}`;

@@ -28,8 +28,8 @@ Complete method reference for ZeroDB engine.
 
 | Method | Description | Returns |
 |--------|-------------|---------|
-| `addUser(user, pass, perms, isGrand, db?)` | Add new user (db optional) | `ZeroDB | null` |
-| `updateUser(user, pass?, perms?, isGrand?, status?)` | Update existing user (db optional) | `ZeroDB | null` |
+| `addUser(user, pass, perms, isGrand,status)` | Add new user (status:boolean "optional") | `ZeroDB | null` |
+| `updateUser(user, pass?, perms?, isGrand?, status?)` | Update existing user (status:boolean "optional") | `ZeroDB | null` |
 | `deleteUser(user, db?)` | Delete user | `ZeroDB | null` |
 | `listUsers(db?)` | List users | `string[]` |
 | `addOwner(db, user)` | Assign user to database | `Promise<boolean>` |
@@ -50,7 +50,8 @@ Complete method reference for ZeroDB engine.
 
 | Method | Description | Returns |
 |--------|-------------|---------|
-| `exit()` | Exit | `void` |
+| `clear()` | Performs cleanup (clears cache and pools) | `void` |
+| `exit()` | Performs cleanup and terminates the process | `void` |
 | `clearCache()` | Clear cache | `void` |
 | `getCacheStats()` | Cache stats | `object` |
 | `getConnectionPool()` | Connection pool | `ConnectionPool` |
@@ -78,31 +79,36 @@ Complete method reference for ZeroDB engine.
 
 ### Read Operations
 
-| Method | Description |
-|--------|-------------|
-| `select(fields)` | Select fields |
-| `where(condition)` | Filter |
-| `orWhere(condition)` | OR filter |
-| `whereIn(field, values)` | IN filter |
-| `whereBetween(field, min, max)` | Range filter |
-| `like(field, pattern)` | Pattern match |
-| `orderBy(field, dir)` | Sort (asc/desc) |
-| `limit(n)` | Limit results |
-| `page(n)` | Pagination |
-| `groupBy(field)` | Group results |
-| `distinct(field)` | Unique values |
-| `first()` | First result |
-| `list()` | All results |
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `select(fields)` | Select fields | `QueryBuilder` |
+| `where(condition)` | Filter | `QueryBuilder` |
+| `orWhere(condition)` | OR filter | `QueryBuilder` |
+| `whereIn(field, values)` | IN filter | `QueryBuilder` |
+| `whereBetween(field, min, max)` | Range filter | `QueryBuilder` |
+| `like(field, pattern)` | Pattern match | `QueryBuilder` |
+| `orderBy(field, dir)` | Sort (asc/desc) | `QueryBuilder` |
+| `limit(n)` | Limit results | `QueryBuilder` |
+| `page(n)` | Pagination | `QueryBuilder` |
+| `groupBy(field)` | Group results | `QueryBuilder` |
+| `distinct(field)` | Unique values | `QueryBuilder` |
+| `join(table, rightField, leftField, fields)` | Join tables | `QueryBuilder` |
+| `sum(field)` | Calculate sum | `Promise<number>` |
+| `avg(field)` | Calculate average | `Promise<number>` |
+| `min(field)` | Find minimum | `Promise<number | null>` |
+| `max(field)` | Find maximum | `Promise<number | null>` |
+| `first()` | Get first result | `Promise<SelectResult | null>` |
+| `list()` | Get all results | `Promise<SelectResult[]>` |
 
-### Write Operations
+### Write Operations (Async)
 
-| Method | Description |
-|--------|-------------|
-| `add(data)` | Insert |
-| `addBatch(data[])` | Batch insert |
-| `update(data)` | Update |
-| `delete()` | Delete |
-| `upsert(data)` | Update or insert |
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `add(data)` | Insert record | `Promise<number>` |
+| `addBatch(data[])` | Batch insert | `Promise<object>` |
+| `update(data)` | Update records | `Promise<number>` |
+| `delete()` | Delete records | `Promise<number>` |
+| `upsert(data)` | Update or insert | `Promise<object>` |
 
 ### ALTER TABLE
 

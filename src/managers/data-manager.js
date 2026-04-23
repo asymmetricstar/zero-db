@@ -609,13 +609,17 @@ class DataManager {
     async clearPoolForTable(dbName, tableName) {
         const prefix = `${dbName}:${tableName}:`;
         const promises = [];
+        const keysToDelete = [];
         for (const [key, spawn] of this.spawnPool.entries()) {
             if (key.startsWith(prefix)) {
+                keysToDelete.push(key);
                 promises.push(spawn.forceFlush());
-                this.spawnPool.delete(key);
             }
         }
         await Promise.all(promises);
+        for (const key of keysToDelete) {
+            this.spawnPool.delete(key);
+        }
     }
 }
 exports.DataManager = DataManager;

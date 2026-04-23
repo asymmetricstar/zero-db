@@ -29,33 +29,35 @@ npm install zero-db-engine
 ## 🏃 Quick Start
 
 ```typescript
-import { ZeroDB } from 'zero-db-engine';
+import { ZeroDB } from 'zero-db';
 
 const db = new ZeroDB('./data');
 
-// 1. Create database
-db.createDatabase('blog');
+// System admin setup
+db.systemadmin.createAdmin('admin', 'pass123');
+db.systemadmin.login('admin', 'pass123');
 
-// 2. Create user and assign as owner
-db.addUser('admin', 'pass123', 127, true);
-db.addOwner('blog', 'admin');
+// Database creation
+db.createDatabase('my_store');
+db.useDatabase('my_store');
 
-// 3. Login
-db.login('blog', 'admin', 'pass123');
-
-// 4. Create table
-db.createTable('posts', [
-  { name: 'id', type: 'auto' },
-  { name: 'title', type: 'string' },
-  { name: 'content', type: 'string' }
+// Create a table with fields
+db.createTable('products', [
+  { name: 'id', type: 'number', option: { isAuto: true } },
+  { name: 'name', type: 'string' },
+  { name: 'price', type: 'number' }
 ]);
 
-// 5. CRUD operations
-const posts = db.table('posts');
-await posts.add({ title: 'Hello ZeroDB', content: 'First post' });
-const list = await posts.select('*').list();
+// CRUD operations
+const products = db.table('products');
+await products.add({ name: 'Laptop', price: '1200' });
+const all = await products.select('*').list();
+await products.where({ name: 'Laptop' }).update({ price: '1100' });
+await products.where({ name: 'Laptop' }).delete();
 
-db.exit();
+// Cleanup and Exit
+db.clear(); // Clear resources
+db.exit();  // Shutdown server process
 ```
 
 ---

@@ -92,7 +92,8 @@ export declare class ZeroDB extends EventEmitter {
     flushAll(): Promise<void>;
     getConnectionPool(): ConnectionPool;
     clearCache(): void;
-    exit(): void;
+    clear(): Promise<void>;
+    exit(): Promise<void>;
     backup(fileName: string): Promise<string>;
     restore(fileName: string): Promise<void>;
     private hasSystemAdmin;

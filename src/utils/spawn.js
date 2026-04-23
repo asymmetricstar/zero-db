@@ -226,7 +226,10 @@ class Spawn {
     async doWrite() {
         const dir = path.dirname(this.filePath);
         if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
+            return;
+        }
+        if (!fs.existsSync(this.filePath)) {
+            return;
         }
         return new Promise((resolve, reject) => {
             const writeStream = fs.createWriteStream(this.filePath);

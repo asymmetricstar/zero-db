@@ -186,7 +186,6 @@ class ZeroDB extends node_events_1.EventEmitter {
                     return false;
                 }
             }
-            this.dataManager.clearPoolForDatabase(dbName);
             const success = this.dbManager.dropDatabase(dbName);
             if (success) {
                 event_manager_1.EventManager.info(`Database '${dbName}' dropped successfully`, { dbName });
@@ -301,6 +300,8 @@ class ZeroDB extends node_events_1.EventEmitter {
                 event_manager_1.EventManager.error('Not authenticated');
                 return null;
             }
+            // Schema'yı yeniden yükle (dropTable'dan sonra cache temizlensin)
+            this.tableManager.invalidate();
             if (!this.tableManager.tableExists(this.currentDb, tableName)) {
                 event_manager_1.EventManager.error(`Table '${tableName}' not found`);
                 return null;
@@ -395,9 +396,10 @@ class ZeroDB extends node_events_1.EventEmitter {
                 event_manager_1.EventManager.error('Permission denied: drop');
                 return false;
             }
-            this.dataManager.clearPoolForTable(this.currentDb, tableName);
             const success = this.tableManager.dropTable(this.currentDb, tableName);
             if (success) {
+                this.dataManager.clearPoolForTable(this.currentDb, tableName);
+                this.tableManager.invalidate();
                 event_manager_1.EventManager.info(`Table '${tableName}' dropped successfully from database '${this.currentDb}'`);
             }
             return success;
@@ -755,9 +757,15 @@ class ZeroDB extends node_events_1.EventEmitter {
         this.fieldManager.invalidate();
         this.dataManager.clearPool();
     }
-    exit() {
-        event_manager_1.EventManager.info('ZeroDB shutting down');
+    async clear() {
+        event_manager_1.EventManager.info('ZeroDB resources clearing...');
+        await this.dataManager.flushAll();
         this.clearCache();
+        event_manager_1.EventManager.info('ZeroDB resources cleared');
+    }
+    async exit() {
+        event_manager_1.EventManager.info('ZeroDB server exiting...');
+        await this.clear();
         process.exit(0);
     }
     async backup(fileName) {
