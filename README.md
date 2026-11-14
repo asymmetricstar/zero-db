@@ -4,8 +4,39 @@ A simple, secure, zero-dependency, high-performance file-based database engine f
 
 ZeroDB combines the familiarity of SQL-style tables with the simplicity of a file-based system. No separate server, no native dependencies, no setup — just a folder for your data.
 
+
+## (new) Database Editor Cli
+Zero DB — Database Editor CLI is a terminal interface for the zero-db engine. It lets you manage a file-based database.
+
+In short, it does four things:
+
+* Databases — create, drop, rename, list, inspect, make public/private, switch (db …, use)
+Tables & fields — create tables, inspect schemas, add/drop/rename/modify fields (table …, field …)
+* Records — find, count, add, update, delete rows with --where, --like, ordering, limits and JSON output (find, add, update, remove)
+* Users & permissions — create, update and delete users, assign multi-select permissions, manage owners, plus login/logout (user …)
+
+ It runs two ways: an interactive shell with a banner/status prompt (zerodb), or one-shot commands for scripts (zerodb find <table> --json). It also supports choosing a database root folder, backups/restores, and environment-based sessions.
+
+> $:> **zerodb**
+
+```bash
+├───────────────────────────────────
+├─ Zero DB (Database Editor)
+├─ Status   : @guest ○ Not logged in
+├─ Database : —
+├───────────────────────────────────
+
+  databases my_app
+  select one with use <database> · sign in with login
+
+  ↑↓ history   tab complete   help commands   clear screen   exit to quit
+$ guest@— login
+```
+
+
+## Manuel usage
 ```js
-import { ZeroDB } from 'zero-db';
+import { ZeroDB } from 'zero-db-engine';
 
 const db = new ZeroDB('./data');
 db.createDatabase('my_store');
@@ -29,7 +60,7 @@ db.useDatabase('my_store');
 npm install zero-db-engine
 ```
 
-> Package name on npm is `zero-db-engine`. Import name is `zero-db`.
+> Package name on npm is `zero-db-engine`. Import name is `zero-db-engine`.
 
 Requires Node.js 18+.
 
@@ -45,7 +76,7 @@ Create the admin, database and table. Do not put this code in your app — run i
 
 ```js
 // setup.js — run once: node setup.js
-import { ZeroDB } from 'zero-db';
+import { ZeroDB } from 'zero-db-engine';
 
 const db = new ZeroDB('./data');
 
@@ -74,7 +105,7 @@ In your real application you only connect to the existing database and run queri
 
 ```js
 // app.js — run every time: node app.js
-import { ZeroDB } from 'zero-db';
+import { ZeroDB } from 'zero-db-engine';
 
 const db = new ZeroDB('./data');
 

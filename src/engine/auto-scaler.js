@@ -86,6 +86,8 @@ class AutoScaler {
             }
             this.evaluateGlobalStrategy();
         }, this.config.metricsInterval);
+        // Metrics collection must never keep an embedding process alive.
+        this.metricsTimer.unref?.();
     }
     evaluateGlobalStrategy() {
         if (this.metrics.length < 5)

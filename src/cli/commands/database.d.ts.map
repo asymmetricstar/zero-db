@@ -1,0 +1,1 @@
+{"version":3,"file":"database.d.ts","sourceRoot":"","sources":["../../../src/cli/commands/database.ts"],"names":[],"mappings":"AAAA;;GAEG;AA8KH,wBAAsB,SAAS,CAAC,IAAI,EAAE,MAAM,EAAE,GAAG,OAAO,CAAC,IAAI,CAAC,CAyB7D;AAED,eAAO,MAAM,UAAU,wEAQb,CAAC;AAEX,wBAAgB,mBAAmB,CAAC,IAAI,EAAE,SAAS,MAAM,EAAE,GAAG,MAAM,EAAE,CAWrE;AAED,wBAAgB,OAAO,CAAC,MAAM,CAAC,EAAE,MAAM,GAAG,MAAM,EAAE,CAmBjD"}
